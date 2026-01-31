@@ -134,6 +134,29 @@ export default function POS() {
     setPendingTableId(null);
   };
   
+  const tableHasItems = (tableId) => {
+    const orders = tableStates[tableId]?.orders || {};
+    return Object.values(orders).some(seatItems => seatItems.length > 0);
+  };
+  
+  const closeTableIfEmpty = (tableId) => {
+    if (tableId && !tableHasItems(tableId)) {
+      // Remove empty table from state
+      setTableStates(prev => {
+        const { [tableId]: _, ...rest } = prev;
+        return rest;
+      });
+    }
+  };
+  
+  const handleBackFromTable = () => {
+    if (activeTable) {
+      closeTableIfEmpty(activeTable);
+    }
+    setActiveTable(null);
+    setActiveTab(null);
+  };
+  
   const openNewTab = () => {
     if (!newTabName.trim()) return;
     const tabId = generateId();
@@ -967,7 +990,7 @@ export default function POS() {
           <div className="order-view">
             <div className="order-panel">
               <div className="order-header">
-                <button className="back-btn" onClick={() => { setActiveTable(null); setActiveTab(null); }}>← Back</button>
+                <button className="back-btn" onClick={handleBackFromTable}>← Back</button>
                 <h2>{isTableView ? `Table ${activeTable}` : tabStates[activeTab]?.name}</h2>
                 {isTableView && (
                   <div className="seat-controls">

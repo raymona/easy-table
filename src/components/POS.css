@@ -21,6 +21,10 @@
   box-sizing: border-box;
 }
 
+body {
+  color: var(--text);
+}
+
 /* ============ LAYOUT ============ */
 
 .pos-container {
@@ -167,6 +171,7 @@
 .sign-in-box h1 {
   font-size: 2rem;
   margin-bottom: 8px;
+  color: var(--text);
 }
 
 .sign-in-box p {
@@ -935,6 +940,7 @@
 .modal h2 {
   margin-bottom: 16px;
   font-size: 1.25rem;
+  color: var(--text);
 }
 
 .modal p {
@@ -1424,6 +1430,7 @@
   font-size: 0.95rem;
   font-weight: 500;
   margin-bottom: 12px;
+  color: var(--text);
 }
 
 .method-buttons {
@@ -1457,6 +1464,7 @@
   font-size: 0.95rem;
   font-weight: 500;
   margin-bottom: 12px;
+  color: var(--text);
 }
 
 .payment-amount-section label {
@@ -1521,6 +1529,7 @@
   font-size: 0.95rem;
   font-weight: 500;
   margin-bottom: 12px;
+  color: var(--text);
 }
 
 .seat-payment-grid {
