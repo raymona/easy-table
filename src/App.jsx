@@ -1,7 +1,15 @@
-import POS from './components/POS'
+import { POSProvider } from './context/POSContext';
+import { UIProvider } from './context/UIContext';
+import POS from './components/POS';
 
 function App() {
-  return <POS />
+  return (
+    <POSProvider>
+      <UIProvider>
+        <POS />
+      </UIProvider>
+    </POSProvider>
+  );
 }
 
-export default App
+export default App;

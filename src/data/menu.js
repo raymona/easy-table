@@ -2,6 +2,8 @@
 // needsModScreen: false = quick add (drinks, simple sides)
 // needsModScreen: true = opens mod screen (proteins, customizable items)
 
+export const TAX_RATE = 0.13;
+
 export const MENU = {
   lunch: {
     drinks: {
@@ -28,8 +30,8 @@ export const MENU = {
       label: 'Starters',
       items: [
         { id: 'soup', name: 'Soup of the Day', price: 8.00, needsModScreen: true },
-        { id: 'wings', name: 'Crispy Wings', price: 16.00, needsModScreen: true, addOns: ['Extra Sauce', 'Blue Cheese', 'Celery'] },
-        { id: 'nachos', name: 'Loaded Nachos', price: 18.00, needsModScreen: true, addOns: ['Guac', 'Sour Cream', 'Jalapeños'] },
+        { id: 'wings', name: 'Crispy Wings', price: 16.00, needsModScreen: true, addOns: [{ name: 'Extra Sauce', price: 1.00 }, { name: 'Blue Cheese', price: 1.50 }, { name: 'Celery', price: 0.50 }] },
+        { id: 'nachos', name: 'Loaded Nachos', price: 18.00, needsModScreen: true, addOns: [{ name: 'Guac', price: 3.00 }, { name: 'Sour Cream', price: 1.00 }, { name: 'Jalapeños', price: 0.50 }] },
         { id: 'calamari', name: 'Fried Calamari', price: 16.00, needsModScreen: true },
         { id: 'bruschetta', name: 'Bruschetta', price: 12.00, needsModScreen: true },
         { id: 'spinach-dip', name: 'Spinach Artichoke Dip', price: 14.00, needsModScreen: true },
@@ -41,10 +43,10 @@ export const MENU = {
       items: [
         { id: 'club', name: 'Classic Club', price: 17.00, needsModScreen: true },
         { id: 'blt', name: 'BLT', price: 14.00, needsModScreen: true },
-        { id: 'grilled-cheese', name: 'Grilled Cheese', price: 12.00, needsModScreen: true, addOns: ['Bacon', 'Tomato', 'Avocado'] },
+        { id: 'grilled-cheese', name: 'Grilled Cheese', price: 12.00, needsModScreen: true, addOns: [{ name: 'Bacon', price: 3.00 }, { name: 'Tomato', price: 0.50 }, { name: 'Avocado', price: 3.00 }] },
         { id: 'chicken-sand', name: 'Crispy Chicken Sandwich', price: 18.00, needsModScreen: true },
         { id: 'reuben', name: 'Reuben', price: 19.00, needsModScreen: true },
-        { id: 'burger-classic', name: 'Classic Burger', price: 18.00, needsModScreen: true, hasCookTemp: true, addOns: ['Bacon', 'Cheese', 'Fried Egg', 'Avocado'] },
+        { id: 'burger-classic', name: 'Classic Burger', price: 18.00, needsModScreen: true, hasCookTemp: true, addOns: [{ name: 'Bacon', price: 3.00 }, { name: 'Cheese', price: 1.50 }, { name: 'Fried Egg', price: 2.00 }, { name: 'Avocado', price: 3.00 }] },
         { id: 'burger-mushroom', name: 'Mushroom Swiss Burger', price: 20.00, needsModScreen: true, hasCookTemp: true },
         { id: 'burger-veggie', name: 'Veggie Burger', price: 17.00, needsModScreen: true },
       ]
@@ -68,7 +70,7 @@ export const MENU = {
         { id: 'chicken-caesar', name: 'Chicken Caesar Salad', price: 18.00, needsModScreen: true },
         { id: 'cobb', name: 'Cobb Salad', price: 19.00, needsModScreen: true },
         { id: 'pasta-primavera', name: 'Pasta Primavera', price: 18.00, needsModScreen: true },
-        { id: 'mac-cheese', name: 'Truffle Mac & Cheese', price: 17.00, needsModScreen: true, addOns: ['Bacon', 'Lobster', 'Pulled Pork'] },
+        { id: 'mac-cheese', name: 'Truffle Mac & Cheese', price: 17.00, needsModScreen: true, addOns: [{ name: 'Bacon', price: 3.00 }, { name: 'Lobster', price: 12.00 }, { name: 'Pulled Pork', price: 5.00 }] },
       ]
     },
     sides: {
@@ -123,8 +125,8 @@ export const MENU = {
       label: 'Starters',
       items: [
         { id: 'soup', name: 'Soup of the Day', price: 10.00, needsModScreen: true },
-        { id: 'wings', name: 'Crispy Wings', price: 18.00, needsModScreen: true, addOns: ['Extra Sauce', 'Blue Cheese', 'Celery'] },
-        { id: 'nachos', name: 'Loaded Nachos', price: 20.00, needsModScreen: true, addOns: ['Guac', 'Sour Cream', 'Jalapeños'] },
+        { id: 'wings', name: 'Crispy Wings', price: 18.00, needsModScreen: true, addOns: [{ name: 'Extra Sauce', price: 1.00 }, { name: 'Blue Cheese', price: 1.50 }, { name: 'Celery', price: 0.50 }] },
+        { id: 'nachos', name: 'Loaded Nachos', price: 20.00, needsModScreen: true, addOns: [{ name: 'Guac', price: 3.00 }, { name: 'Sour Cream', price: 1.00 }, { name: 'Jalapeños', price: 0.50 }] },
         { id: 'calamari', name: 'Fried Calamari', price: 18.00, needsModScreen: true },
         { id: 'bruschetta', name: 'Bruschetta', price: 14.00, needsModScreen: true },
         { id: 'beef-tartare', name: 'Beef Tartare', price: 19.00, needsModScreen: true },
@@ -137,7 +139,7 @@ export const MENU = {
     sandwiches: {
       label: 'Burgers',
       items: [
-        { id: 'burger-classic', name: 'Classic Burger', price: 20.00, needsModScreen: true, hasCookTemp: true, addOns: ['Bacon', 'Cheese', 'Fried Egg', 'Avocado'] },
+        { id: 'burger-classic', name: 'Classic Burger', price: 20.00, needsModScreen: true, hasCookTemp: true, addOns: [{ name: 'Bacon', price: 3.00 }, { name: 'Cheese', price: 1.50 }, { name: 'Fried Egg', price: 2.00 }, { name: 'Avocado', price: 3.00 }] },
         { id: 'burger-mushroom', name: 'Mushroom Swiss Burger', price: 22.00, needsModScreen: true, hasCookTemp: true },
         { id: 'burger-blue', name: 'Blue Cheese Burger', price: 23.00, needsModScreen: true, hasCookTemp: true },
         { id: 'burger-veggie', name: 'Veggie Burger', price: 19.00, needsModScreen: true },
@@ -161,8 +163,8 @@ export const MENU = {
         { id: 'chicken', name: 'Roast Chicken', price: 28.00, needsModScreen: true },
         { id: 'pork-chop', name: 'Grilled Pork Chop', price: 30.00, needsModScreen: true, hasCookTemp: true },
         { id: 'lamb-chops', name: 'Lamb Chops', price: 38.00, needsModScreen: true, hasCookTemp: true },
-        { id: 'steak-ribeye', name: 'Ribeye 14oz', price: 52.00, needsModScreen: true, hasCookTemp: true, addOns: ['Peppercorn Sauce', 'Blue Cheese Butter', 'Garlic Butter', 'Mushrooms'] },
-        { id: 'steak-filet', name: 'Filet Mignon 8oz', price: 48.00, needsModScreen: true, hasCookTemp: true, addOns: ['Peppercorn Sauce', 'Blue Cheese Butter', 'Garlic Butter'] },
+        { id: 'steak-ribeye', name: 'Ribeye 14oz', price: 52.00, needsModScreen: true, hasCookTemp: true, addOns: [{ name: 'Peppercorn Sauce', price: 3.00 }, { name: 'Blue Cheese Butter', price: 2.00 }, { name: 'Garlic Butter', price: 2.00 }, { name: 'Mushrooms', price: 3.00 }] },
+        { id: 'steak-filet', name: 'Filet Mignon 8oz', price: 48.00, needsModScreen: true, hasCookTemp: true, addOns: [{ name: 'Peppercorn Sauce', price: 3.00 }, { name: 'Blue Cheese Butter', price: 2.00 }, { name: 'Garlic Butter', price: 2.00 }] },
         { id: 'steak-strip', name: 'NY Strip 12oz', price: 46.00, needsModScreen: true, hasCookTemp: true },
         { id: 'short-rib', name: 'Braised Short Rib', price: 36.00, needsModScreen: true },
         { id: 'pasta-bolognese', name: 'Bolognese', price: 24.00, needsModScreen: true },
@@ -205,7 +207,6 @@ export const VOID_REASONS = [
   'Kitchen error',
   'Server error',
   '86\'d',
-  'Comp',
   'Other'
 ];
 
