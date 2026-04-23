@@ -1,10 +1,9 @@
 import { Router } from 'express';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../lib/prisma.js';
 import { authenticate } from '../middleware/auth.js';
 import { AppError } from '../utils/errors.js';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // POST /api/payments — Process a payment
 router.post('/', authenticate, async (req, res, next) => {

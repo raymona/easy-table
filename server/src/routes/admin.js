@@ -1,10 +1,9 @@
 import { Router } from 'express';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../lib/prisma.js';
 import { authenticate, requireRole } from '../middleware/auth.js';
 import { AppError } from '../utils/errors.js';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // GET /api/admin/config — Get venue config
 router.get('/config', authenticate, async (req, res, next) => {

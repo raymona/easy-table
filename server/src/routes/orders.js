@@ -1,10 +1,9 @@
 import { Router } from 'express';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../lib/prisma.js';
 import { authenticate } from '../middleware/auth.js';
 import { AppError } from '../utils/errors.js';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // POST /api/orders/items — Add item to table session or tab session
 router.post('/items', authenticate, async (req, res, next) => {
@@ -13,6 +12,21 @@ router.post('/items', authenticate, async (req, res, next) => {
 
     if (!tableSessionId && !tabSessionId) {
       throw new AppError('tableSessionId or tabSessionId required', 400);
+    }
+
+    // Resolve KDS station from menu item routing
+    let kdsStationId = null;
+    if (item.menuItemId) {
+      const menuItem = await prisma.menuItem.findUnique({
+        where: { id: item.menuItemId },
+        select: { kdsRouting: true },
+      });
+      if (menuItem?.kdsRouting) {
+        const station = await prisma.kdsStation.findUnique({
+          where: { venueId_key: { venueId: req.staff.venueId, key: menuItem.kdsRouting } },
+        });
+        kdsStationId = station?.id || null;
+      }
     }
 
     const orderItem = await prisma.orderItem.create({
@@ -32,6 +46,7 @@ router.post('/items', authenticate, async (req, res, next) => {
         notes: item.notes || [],
         timing: item.timing || null,
         sentById: req.staff.staffId,
+        kdsStationId,
       },
     });
 
@@ -120,6 +135,30 @@ router.post('/send', authenticate, async (req, res, next) => {
       },
       data: { status: 'sent', sentAt: now },
     });
+
+    // Backfill KDS routing for items that don't have a station assigned
+    const itemsNeedingRouting = await prisma.orderItem.findMany({
+      where: { ...where, kdsStationId: null, status: { in: ['fired', 'sent'] }, voidedAt: null },
+      select: { id: true, menuItemId: true },
+    });
+
+    for (const oi of itemsNeedingRouting) {
+      if (!oi.menuItemId) continue;
+      const mi = await prisma.menuItem.findUnique({
+        where: { id: oi.menuItemId },
+        select: { kdsRouting: true },
+      });
+      if (!mi?.kdsRouting) continue;
+      const station = await prisma.kdsStation.findUnique({
+        where: { venueId_key: { venueId: req.staff.venueId, key: mi.kdsRouting } },
+      });
+      if (station) {
+        await prisma.orderItem.update({
+          where: { id: oi.id },
+          data: { kdsStationId: station.id },
+        });
+      }
+    }
 
     const items = await prisma.orderItem.findMany({
       where: { ...where, voidedAt: null },

@@ -1,11 +1,10 @@
 import { Router } from 'express';
-import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
+import prisma from '../lib/prisma.js';
 import { AppError } from '../utils/errors.js';
 import { authenticate } from '../middleware/auth.js';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // POST /api/auth/login — PIN-based staff login
 router.post('/login', async (req, res, next) => {
