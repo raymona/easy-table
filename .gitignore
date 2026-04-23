@@ -24,3 +24,12 @@ Thumbs.db
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Prisma
+server/prisma/migrations/
+
+# Database
+*.db
+
+# Claude Code local settings
+.claude/

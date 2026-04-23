@@ -1,14 +1,17 @@
 import { POSProvider } from './context/POSContext';
 import { UIProvider } from './context/UIContext';
+import { AuthProvider } from './context/AuthContext';
 import POS from './components/POS';
 
 function App() {
   return (
-    <POSProvider>
-      <UIProvider>
-        <POS />
-      </UIProvider>
-    </POSProvider>
+    <AuthProvider>
+      <POSProvider>
+        <UIProvider>
+          <POS />
+        </UIProvider>
+      </POSProvider>
+    </AuthProvider>
   );
 }
 

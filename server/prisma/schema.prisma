@@ -1,0 +1,317 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ── Venue / Multi-tenant ──────────────────────────────────────
+model Venue {
+  id        String   @id @default(cuid())
+  name      String
+  province  String   @default("ON")
+  mode      String   @default("restaurant") // restaurant|hotel|bar|bar-hotel
+  timezone  String   @default("America/Toronto")
+  adminPin  String   @default("1234")
+  taxRate   Float?   // override — null = use province default
+  tipPresets Int[]   @default([15, 18, 20, 25])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  staff          Staff[]
+  floorSections  FloorSection[]
+  tables         Table[]
+  menuCategories MenuCategory[]
+  discountPresets DiscountPreset[]
+  voidReasons    VoidReason[]
+  serviceConfigs ServiceConfig[]
+  kdsStations    KdsStation[]
+  tableSessions  TableSession[]
+  tabSessions    TabSession[]
+  bills          Bill[]
+}
+
+// ── Staff & Auth ──────────────────────────────────────────────
+model Staff {
+  id           String   @id @default(cuid())
+  venueId      String
+  venue        Venue    @relation(fields: [venueId], references: [id])
+  name         String
+  pin          String?  // 4-digit PIN for POS sign-in
+  passwordHash String?  // for manager/admin web login (future)
+  role         String   @default("server") // server|bartender|manager|admin
+  color        String   @default("#3B82F6")
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  tableSessions TableSession[]
+  tabSessions   TabSession[]
+  orderItems    OrderItem[]  @relation("sentBy")
+  payments      Payment[]
+  clockEvents   ClockEvent[]
+
+  @@index([venueId])
+}
+
+// ── Floor Layout ──────────────────────────────────────────────
+model FloorSection {
+  id        String  @id @default(cuid())
+  venueId   String
+  venue     Venue   @relation(fields: [venueId], references: [id])
+  name      String  // "dining", "lounge", "patio"
+  label     String  // "Dining Room", "Lounge / Bar", "Patio"
+  sortOrder Int     @default(0)
+  tables    Table[]
+
+  @@index([venueId])
+}
+
+model Table {
+  id           String       @id @default(cuid())
+  venueId      String
+  venue        Venue        @relation(fields: [venueId], references: [id])
+  sectionId    String
+  section      FloorSection @relation(fields: [sectionId], references: [id])
+  number       Int          // display number (1, 2, 101...)
+  x            Int
+  y            Int
+  shape        String       @default("square") // square|round|wide
+  defaultSeats Int          @default(4)
+
+  tableSessions TableSession[]
+
+  @@unique([venueId, number])
+  @@index([venueId])
+}
+
+// ── Table Sessions (open checks) ──────────────────────────────
+model TableSession {
+  id        String     @id @default(cuid())
+  venueId   String
+  venue     Venue      @relation(fields: [venueId], references: [id])
+  tableId   String
+  table     Table      @relation(fields: [tableId], references: [id])
+  staffId   String
+  staff     Staff      @relation(fields: [staffId], references: [id])
+  seatCount Int
+  status    String     @default("open") // open|closed
+  openedAt  DateTime   @default(now())
+  closedAt  DateTime?
+
+  orderItems OrderItem[]
+  payments   Payment[]
+  bill       Bill?
+
+  @@index([venueId, status])
+  @@index([tableId])
+}
+
+// ── Tab Sessions (bar tabs) ───────────────────────────────────
+model TabSession {
+  id         String     @id @default(cuid())
+  venueId    String
+  venue      Venue      @relation(fields: [venueId], references: [id])
+  name       String
+  staffId    String
+  staff      Staff      @relation(fields: [staffId], references: [id])
+  preAuthRef String?    // Moneris pre-auth reference
+  cardLast4  String?
+  status     String     @default("open") // open|closed
+  openedAt   DateTime   @default(now())
+  closedAt   DateTime?
+
+  orderItems OrderItem[]
+  payments   Payment[]
+  bill       Bill?
+
+  @@index([venueId, status])
+}
+
+// ── Order Items ───────────────────────────────────────────────
+model OrderItem {
+  id             String        @id @default(cuid())
+  tableSessionId String?
+  tableSession   TableSession? @relation(fields: [tableSessionId], references: [id])
+  tabSessionId   String?
+  tabSession     TabSession?   @relation(fields: [tabSessionId], references: [id])
+  seatNumber     Int?
+  menuItemId     String?
+  name           String
+  price          Float
+  quantity       Int           @default(1)
+  course         String        @default("") // ""=none, Drinks, Apps, Mains, Dessert
+  status         String        @default("new") // new|sent|fired|bumped|voided
+  mods           Json          @default("[]")
+  addOns         Json          @default("[]") // [{name, price}]
+  cookTemp       String?
+  allergies      Json          @default("[]")
+  notes          Json          @default("[]")
+  timing         String?
+  isComped       Boolean       @default(false)
+  compReason     String?
+  sentById       String?
+  sentBy         Staff?        @relation("sentBy", fields: [sentById], references: [id])
+  sentAt         DateTime?
+  firedAt        DateTime?
+  bumpedAt       DateTime?
+  voidedAt       DateTime?
+  voidReason     String?
+  splitFrom      String?       // original item id if split
+  kdsStationId   String?
+  kdsStation     KdsStation?   @relation(fields: [kdsStationId], references: [id])
+  createdAt      DateTime      @default(now())
+
+  @@index([tableSessionId])
+  @@index([tabSessionId])
+  @@index([kdsStationId, status])
+}
+
+// ── Payments ──────────────────────────────────────────────────
+model Payment {
+  id             String        @id @default(cuid())
+  tableSessionId String?
+  tableSession   TableSession? @relation(fields: [tableSessionId], references: [id])
+  tabSessionId   String?
+  tabSession     TabSession?   @relation(fields: [tabSessionId], references: [id])
+  billId         String?
+  bill           Bill?         @relation(fields: [billId], references: [id])
+  staffId        String
+  staff          Staff         @relation(fields: [staffId], references: [id])
+  method         String        // cash|visa|mastercard|amex|discover|debit|gift|room
+  amount         Float
+  seatNumber     Int?
+  tipAmount      Float         @default(0)
+  roomNumber     String?
+  guestName      String?
+  giftCardCode   String?
+  processorRef   String?       // Moneris transaction ID
+  status         String        @default("completed") // completed|voided|refunded
+  createdAt      DateTime      @default(now())
+
+  @@index([tableSessionId])
+  @@index([tabSessionId])
+  @@index([billId])
+}
+
+// ── Bills (closed sessions) ───────────────────────────────────
+model Bill {
+  id             String        @id @default(cuid())
+  venueId        String
+  venue          Venue         @relation(fields: [venueId], references: [id])
+  tableSessionId String?       @unique
+  tableSession   TableSession? @relation(fields: [tableSessionId], references: [id])
+  tabSessionId   String?       @unique
+  tabSession     TabSession?   @relation(fields: [tabSessionId], references: [id])
+  subtotal       Float
+  discountAmount Float         @default(0)
+  discountLabel  String?
+  taxAmount      Float
+  total          Float
+  tipTotal       Float         @default(0)
+  amountPaid     Float
+  closedAt       DateTime      @default(now())
+
+  payments Payment[]
+
+  @@index([venueId, closedAt])
+}
+
+// ── Menu ──────────────────────────────────────────────────────
+model MenuCategory {
+  id        String     @id @default(cuid())
+  venueId   String
+  venue     Venue      @relation(fields: [venueId], references: [id])
+  key       String     // "drinks", "apps", "mains"
+  label     String     // "Drinks", "Appetizers"
+  daypart   String     @default("all") // "lunch"|"dinner"|"all"
+  sortOrder Int        @default(0)
+  items     MenuItem[]
+
+  @@index([venueId])
+}
+
+model MenuItem {
+  id             String       @id @default(cuid())
+  categoryId     String
+  category       MenuCategory @relation(fields: [categoryId], references: [id])
+  name           String
+  price          Float
+  needsModScreen Boolean      @default(false)
+  hasCookTemp    Boolean      @default(false)
+  addOns         Json         @default("[]") // [{name, price}]
+  kdsRouting     String?      // station key: "grill", "saute", "bar"
+  active         Boolean      @default(true)
+  sortOrder      Int          @default(0)
+
+  @@index([categoryId])
+}
+
+// ── Discount & Void Config ────────────────────────────────────
+model DiscountPreset {
+  id      String @id @default(cuid())
+  venueId String
+  venue   Venue  @relation(fields: [venueId], references: [id])
+  label   String
+  type    String // "percent"|"fixed"
+  value   Float
+
+  @@index([venueId])
+}
+
+model VoidReason {
+  id      String @id @default(cuid())
+  venueId String
+  venue   Venue  @relation(fields: [venueId], references: [id])
+  label   String
+
+  @@index([venueId])
+}
+
+// ── Service Config ────────────────────────────────────────────
+model ServiceConfig {
+  id      String @id @default(cuid())
+  venueId String
+  venue   Venue  @relation(fields: [venueId], references: [id])
+  period  String // "lunch"|"dinner"
+  start   String // "11:00"
+  end     String // "22:59"
+
+  @@index([venueId])
+}
+
+// ── KDS Stations ──────────────────────────────────────────────
+model KdsStation {
+  id        String      @id @default(cuid())
+  venueId   String
+  venue     Venue       @relation(fields: [venueId], references: [id])
+  name      String      // "Grill", "Sauté", "Fry", "Expo", "Bar"
+  key       String      // "grill", "saute", "fry", "expo", "bar"
+  color     String      @default("#3B82F6")
+  sortOrder Int         @default(0)
+
+  orderItems OrderItem[]
+
+  @@unique([venueId, key])
+  @@index([venueId])
+}
+
+// ── Gift Cards ────────────────────────────────────────────────
+model GiftCard {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  balance   Float
+  createdAt DateTime @default(now())
+}
+
+// ── Time Clock ────────────────────────────────────────────────
+model ClockEvent {
+  id        String   @id @default(cuid())
+  staffId   String
+  staff     Staff    @relation(fields: [staffId], references: [id])
+  type      String   // "clock_in"|"clock_out"|"break_start"|"break_end"
+  timestamp DateTime @default(now())
+
+  @@index([staffId])
+}
