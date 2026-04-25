@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { usePOS, POS_ACTIONS } from '../../../context';
+import { usePOS } from '../../../context';
+import { usePOSActions } from '../../../hooks/usePOSActions';
 
 export default function VoidReasonsSection() {
-  const { state, dispatch } = usePOS();
+  const { state } = usePOS();
+  const actions = usePOSActions();
   const [reasons, setReasons] = useState([...state.adminConfig.voidReasons]);
 
   const updateReason = (idx, value) => {
@@ -17,8 +19,8 @@ export default function VoidReasonsSection() {
     setReasons(prev => [...prev, '']);
   };
 
-  const save = () => {
-    dispatch({ type: POS_ACTIONS.UPDATE_ADMIN_CONFIG, updates: { voidReasons: reasons.filter(r => r.trim()) } });
+  const save = async () => {
+    await actions.updateAdminConfig({ voidReasons: reasons.filter(r => r.trim()) });
   };
 
   return (

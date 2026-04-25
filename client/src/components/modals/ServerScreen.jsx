@@ -1,11 +1,13 @@
 import React from 'react';
 import { SERVERS } from '../../data/menu';
 import { usePOS, useUI, POS_ACTIONS } from '../../context';
+import { usePOSActions } from '../../hooks/usePOSActions';
 import { generateId } from '../../utils/idGenerator';
 
 export default function ServerScreen() {
   const { state, dispatch } = usePOS();
   const { closedBills, currentServer, tableStates } = state;
+  const actions = usePOSActions();
   const {
     showServerScreen, setShowServerScreen,
     setActiveTable, setActiveTab,
@@ -39,10 +41,10 @@ export default function ServerScreen() {
 
   const avgCheck = stats.billCount > 0 ? stats.totalSales / stats.billCount : 0;
 
-  const reopenBill = (bill) => {
+  const reopenBill = async (bill) => {
     if (bill.type === 'table') {
       if (!tableStates[bill.tableId]) {
-        dispatch({ type: POS_ACTIONS.REOPEN_BILL, bill, newTableId: bill.tableId });
+        await actions.reopenBill(bill, bill.tableId, null);
         setShowServerScreen(false);
         setActiveTable(bill.tableId);
       } else {
@@ -51,7 +53,7 @@ export default function ServerScreen() {
       }
     } else {
       const newTabId = generateId();
-      dispatch({ type: POS_ACTIONS.REOPEN_BILL, bill, newTabId });
+      await actions.reopenBill(bill, null, newTabId);
       setShowServerScreen(false);
       setActiveTab(newTabId);
     }

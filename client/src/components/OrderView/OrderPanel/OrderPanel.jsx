@@ -1,5 +1,6 @@
 import React from 'react';
-import { usePOS, useUI, POS_ACTIONS } from '../../../context';
+import { usePOS, useUI } from '../../../context';
+import { usePOSActions } from '../../../hooks/usePOSActions';
 import { groupItemsByCourse } from '../../../utils/orderHelpers';
 import { generateId } from '../../../utils/idGenerator';
 import {
@@ -12,8 +13,9 @@ import OrderItem from './OrderItem';
 const STATUS = { NEW: 'new', SENT: 'sent', FIRED: 'fired' };
 
 export default function OrderPanel() {
-  const { state, dispatch } = usePOS();
+  const { state } = usePOS();
   const { tableStates, tabStates, tablePayments } = state;
+  const actions = usePOSActions();
   const {
     activeTable, setActiveTable,
     activeTab, setActiveTab,
@@ -53,15 +55,15 @@ export default function OrderPanel() {
   })();
 
   // ── Handlers ──────────────────────────────────────────────────────────────
-  const handleBackFromTable = () => {
-    if (activeTable) dispatch({ type: POS_ACTIONS.CLOSE_TABLE_IF_EMPTY, tableId: activeTable });
+  const handleBackFromTable = async () => {
+    if (activeTable) await actions.closeTableIfEmpty(activeTable);
     setActiveTable(null);
     setActiveTab(null);
   };
 
-  const adjustSeatCount = (delta) => {
+  const adjustSeatCount = async (delta) => {
     if (!activeTable) return;
-    dispatch({ type: POS_ACTIONS.ADJUST_SEATS, tableId: activeTable, delta });
+    await actions.adjustSeats(activeTable, delta);
     const newCount = Math.max(1, tableStates[activeTable].seats + delta);
     if (activeSeat > newCount) setActiveSeat(newCount);
   };
@@ -73,18 +75,12 @@ export default function OrderPanel() {
 
   const handleDragStart = (item, seatNum) => setDraggedItem({ source: 'order', item, seatNum });
 
-  const handleDrop = (targetSeat) => {
+  const handleDrop = async (targetSeat) => {
     if (!draggedItem) return;
 
     if (draggedItem.source === 'order') {
       if (draggedItem.seatNum !== targetSeat) {
-        dispatch({
-          type: POS_ACTIONS.DRAG_DROP_ITEM,
-          tableId: activeTable,
-          itemId: draggedItem.item.id,
-          fromSeat: draggedItem.seatNum,
-          toSeat: targetSeat,
-        });
+        await actions.dragDropItem(activeTable, draggedItem.item.id, draggedItem.seatNum, targetSeat);
       }
     } else if (draggedItem.source === 'menu') {
       const menuItem = draggedItem.menuItem;
@@ -101,19 +97,14 @@ export default function OrderPanel() {
         setItemTiming('');
         setShowModScreen(true);
       } else {
-        dispatch({
-          type: POS_ACTIONS.ADD_ITEM,
-          tableId: activeTable,
-          seatNum: targetSeat,
-          item: {
-            ...menuItem,
-            id: generateId(),
-            quantity: 1,
-            mods: [],
-            course: activeCourse,
-            status: STATUS.NEW,
-            addedAt: Date.now(),
-          },
+        await actions.addItem(activeTable, null, targetSeat, {
+          ...menuItem,
+          id: generateId(),
+          quantity: 1,
+          mods: [],
+          course: activeCourse,
+          status: STATUS.NEW,
+          addedAt: Date.now(),
         });
       }
     }
@@ -152,7 +143,7 @@ export default function OrderPanel() {
             <button
               key={course}
               className="fire-btn"
-              onClick={() => dispatch({ type: POS_ACTIONS.FIRE_COURSE, tableId: activeTable, course })}
+              onClick={() => actions.fireCourse(activeTable, course)}
             >Fire {course}</button>
           ))}
         </div>

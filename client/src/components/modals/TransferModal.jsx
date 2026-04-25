@@ -1,10 +1,12 @@
 import React from 'react';
 import { TABLES } from '../../data/menu';
-import { usePOS, useUI, POS_ACTIONS } from '../../context';
+import { usePOS, useUI } from '../../context';
+import { usePOSActions } from '../../hooks/usePOSActions';
 
 export default function TransferModal() {
-  const { state, dispatch } = usePOS();
+  const { state } = usePOS();
   const { tableStates, currentServer } = state;
+  const actions = usePOSActions();
   const {
     showTransferModal, setShowTransferModal,
     activeTable, setActiveTable,
@@ -15,14 +17,14 @@ export default function TransferModal() {
 
   const isTableView = activeTable !== null;
 
-  const transferFullTable = (toTableId) => {
-    dispatch({ type: POS_ACTIONS.TRANSFER_TABLE, fromTableId: activeTable, toTableId });
+  const transferFullTable = async (toTableId) => {
+    await actions.transferTable(activeTable, toTableId);
     setActiveTable(toTableId);
     setShowTransferModal(false);
   };
 
-  const transferTabToTable = (tableId) => {
-    dispatch({ type: POS_ACTIONS.TRANSFER_TAB_TO_TABLE, tabId: activeTab, tableId, server: currentServer });
+  const transferTabToTable = async (tableId) => {
+    await actions.transferTabToTable(activeTab, tableId, currentServer);
     setActiveTab(null);
     setActiveTable(tableId);
     setShowTransferModal(false);

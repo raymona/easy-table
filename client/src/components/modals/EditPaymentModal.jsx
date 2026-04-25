@@ -1,9 +1,10 @@
 import React from 'react';
 import { CARD_TYPES } from '../../data/menu';
-import { usePOS, useUI, POS_ACTIONS } from '../../context';
+import { useUI } from '../../context';
+import { usePOSActions } from '../../hooks/usePOSActions';
 
 export default function EditPaymentModal() {
-  const { dispatch } = usePOS();
+  const actions = usePOSActions();
   const {
     showEditPaymentModal, setShowEditPaymentModal,
     selectedClosedBill, setSelectedClosedBill,
@@ -17,13 +18,8 @@ export default function EditPaymentModal() {
   const setAmount = (val) =>
     setSelectedClosedBill(prev => ({ ...prev, amountPaid: parseFloat(val) || 0 }));
 
-  const savePayment = () => {
-    dispatch({
-      type: POS_ACTIONS.UPDATE_PAYMENT,
-      billId: selectedClosedBill.id,
-      newMethod: selectedClosedBill.payments[0]?.method,
-      newAmount: selectedClosedBill.amountPaid,
-    });
+  const savePayment = async () => {
+    await actions.updatePayment(selectedClosedBill.id, selectedClosedBill.payments[0]?.method, selectedClosedBill.amountPaid);
     setShowEditPaymentModal(false);
     setSelectedClosedBill(null);
   };

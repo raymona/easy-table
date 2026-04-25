@@ -1,9 +1,11 @@
 import React from 'react';
-import { usePOS, useUI, POS_ACTIONS } from '../../context';
+import { usePOS, useUI } from '../../context';
+import { usePOSActions } from '../../hooks/usePOSActions';
 
 export default function SeatPickerModal() {
-  const { state, dispatch } = usePOS();
+  const { state } = usePOS();
   const { currentServer } = state;
+  const actions = usePOSActions();
   const {
     showSeatPicker, setShowSeatPicker,
     pendingTableId, setPendingTableId,
@@ -13,8 +15,8 @@ export default function SeatPickerModal() {
 
   if (!showSeatPicker) return null;
 
-  const confirmOpenTable = () => {
-    dispatch({ type: POS_ACTIONS.OPEN_TABLE, tableId: pendingTableId, server: currentServer, seatCount });
+  const confirmOpenTable = async () => {
+    await actions.openTable(pendingTableId, currentServer, seatCount);
     setActiveTable(pendingTableId);
     setActiveTab(null);
     setActiveSeat(1);

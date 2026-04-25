@@ -1,13 +1,15 @@
 import React from 'react';
 import { COOK_TEMPS } from '../../data/menu';
-import { usePOS, useUI, POS_ACTIONS } from '../../context';
+import { usePOS, useUI } from '../../context';
+import { usePOSActions } from '../../hooks/usePOSActions';
 import { generateId } from '../../utils/idGenerator';
 
 const STATUS = { NEW: 'new', SENT: 'sent', FIRED: 'fired' };
 
 export default function ItemActionsModal() {
-  const { state, dispatch } = usePOS();
+  const { state } = usePOS();
   const { tableStates } = state;
+  const actions = usePOSActions();
   const {
     showItemActions, setShowItemActions,
     selectedItem, setSelectedItem,
@@ -30,18 +32,18 @@ export default function ItemActionsModal() {
 
   const close = () => { setShowItemActions(false); };
 
-  const quickVoidItem = () => {
-    dispatch({ type: POS_ACTIONS.VOID_ITEM, tableId: activeTable, tabId: activeTab, seatNum, itemId: item.id });
+  const quickVoidItem = async () => {
+    await actions.voidItem(activeTable, activeTab, seatNum, item.id);
     setShowItemActions(false);
     setSelectedItem(null);
   };
 
-  const reorderItem = () => {
+  const reorderItem = async () => {
     const newItem = { ...item, id: generateId(), status: STATUS.NEW, addedAt: Date.now() };
     if (activeTable && seatNum) {
-      dispatch({ type: POS_ACTIONS.ADD_ITEM, tableId: activeTable, seatNum, item: newItem });
+      await actions.addItem(activeTable, null, seatNum, newItem);
     } else {
-      dispatch({ type: POS_ACTIONS.ADD_ITEM, tableId: activeTable, tabId: activeTab, seatNum: activeSeat, item: newItem });
+      await actions.addItem(activeTable, activeTab, activeSeat, newItem);
     }
     setShowItemActions(false);
     setSelectedItem(null);
@@ -95,8 +97,8 @@ export default function ItemActionsModal() {
                 {isQuickVoidable ? 'Void (with reason)...' : 'Void'}
               </button>
               {!item.isComped && (
-                <button onClick={() => {
-                  dispatch({ type: POS_ACTIONS.COMP_ITEM, tableId: activeTable, tabId: activeTab, seatNum, itemId: item.id });
+                <button onClick={async () => {
+                  await actions.compItem(activeTable, activeTab, seatNum, item.id);
                   setShowItemActions(false);
                   setSelectedItem(null);
                 }}>Comp</button>

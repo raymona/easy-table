@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { usePOS, POS_ACTIONS } from '../../../context';
+import { usePOS } from '../../../context';
+import { usePOSActions } from '../../../hooks/usePOSActions';
 
 export default function DiscountsSection() {
-  const { state, dispatch } = usePOS();
+  const { state } = usePOS();
+  const actions = usePOSActions();
   const [presets, setPresets] = useState(
     JSON.parse(JSON.stringify(state.adminConfig.discountPresets))
   );
@@ -19,13 +21,13 @@ export default function DiscountsSection() {
     setPresets(prev => [...prev, { label: '', type: 'percent', value: 0 }]);
   };
 
-  const save = () => {
+  const save = async () => {
     const cleaned = presets.map(p => ({
       label: p.label,
       type: p.type,
       value: parseFloat(p.value) || 0,
     }));
-    dispatch({ type: POS_ACTIONS.UPDATE_ADMIN_CONFIG, updates: { discountPresets: cleaned } });
+    await actions.updateAdminConfig({ discountPresets: cleaned });
   };
 
   return (

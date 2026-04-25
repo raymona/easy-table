@@ -74,6 +74,11 @@ export const POS_ACTIONS = {
   // Admin config
   UPDATE_SERVICE_CONFIG: 'UPDATE_SERVICE_CONFIG',
   UPDATE_ADMIN_CONFIG: 'UPDATE_ADMIN_CONFIG',
+
+  // Backend integration
+  HYDRATE_FROM_BACKEND: 'HYDRATE_FROM_BACKEND',
+  SET_SESSION_ID: 'SET_SESSION_ID',
+  MAP_ITEM_ID: 'MAP_ITEM_ID',
 };
 
 // ─── Initial State ─────────────────────────────────────────────────────────
@@ -121,6 +126,10 @@ const initialState = {
       { id: 5, name: 'Ashley', color: '#EC4899' },
     ],
   },
+  // Backend integration — maps local IDs to backend CUIDs
+  sessionMap: {},     // { [tableNumber]: backendSessionId }
+  tabSessionMap: {},  // { [localTabId]: backendTabSessionId }
+  itemIdMap: {},      // { [localItemId]: backendItemId }
 };
 
 // ─── Status constants ──────────────────────────────────────────────────────
@@ -492,10 +501,12 @@ function posReducer(state, action) {
       const { tableId, closedBill } = action;
       const { [tableId]: _t, ...restTables } = state.tableStates;
       const { [tableId]: _p, ...restPayments } = state.tablePayments;
+      const { [tableId]: _s, ...restSessionMap } = state.sessionMap;
       return {
         ...state,
         tableStates: restTables,
         tablePayments: restPayments,
+        sessionMap: restSessionMap,
         closedBills: [closedBill, ...state.closedBills],
       };
     }
@@ -503,9 +514,11 @@ function posReducer(state, action) {
     case POS_ACTIONS.CLOSE_TAB_BILL: {
       const { tabId, closedBill } = action;
       const { [tabId]: _, ...restTabs } = state.tabStates;
+      const { [tabId]: _ts, ...restTabSessionMap } = state.tabSessionMap;
       return {
         ...state,
         tabStates: restTabs,
+        tabSessionMap: restTabSessionMap,
         closedBills: [closedBill, ...state.closedBills],
       };
     }
@@ -707,6 +720,40 @@ function posReducer(state, action) {
 
     case POS_ACTIONS.UPDATE_ADMIN_CONFIG: {
       return { ...state, adminConfig: { ...state.adminConfig, ...action.updates } };
+    }
+
+    // ── Backend Integration ───────────────────────────────────────────────
+    case POS_ACTIONS.HYDRATE_FROM_BACKEND: {
+      const { tableStates, tabStates, tablePayments, closedBills,
+              sessionMap, tabSessionMap, itemIdMap, adminConfig, serviceConfig } = action.payload;
+      return {
+        ...state,
+        tableStates: tableStates ?? state.tableStates,
+        tabStates: tabStates ?? state.tabStates,
+        tablePayments: tablePayments ?? state.tablePayments,
+        closedBills: closedBills ?? state.closedBills,
+        sessionMap: sessionMap ?? state.sessionMap,
+        tabSessionMap: tabSessionMap ?? state.tabSessionMap,
+        itemIdMap: { ...state.itemIdMap, ...(itemIdMap ?? {}) },
+        adminConfig: adminConfig ?? state.adminConfig,
+        serviceConfig: serviceConfig ?? state.serviceConfig,
+      };
+    }
+
+    case POS_ACTIONS.SET_SESSION_ID: {
+      const { tableNumber, sessionId } = action;
+      return {
+        ...state,
+        sessionMap: { ...state.sessionMap, [tableNumber]: sessionId },
+      };
+    }
+
+    case POS_ACTIONS.MAP_ITEM_ID: {
+      const { localId, backendId } = action;
+      return {
+        ...state,
+        itemIdMap: { ...state.itemIdMap, [localId]: backendId },
+      };
     }
 
     default:

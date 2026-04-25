@@ -1,9 +1,11 @@
 import React from 'react';
-import { usePOS, useUI, POS_ACTIONS } from '../../context';
+import { usePOS, useUI } from '../../context';
+import { usePOSActions } from '../../hooks/usePOSActions';
 
 export default function MoveItemModal() {
-  const { state, dispatch } = usePOS();
+  const { state } = usePOS();
   const { tableStates } = state;
+  const actions = usePOSActions();
   const {
     showMoveItemModal, setShowMoveItemModal,
     selectedItem, setSelectedItem,
@@ -13,9 +15,9 @@ export default function MoveItemModal() {
 
   if (!showMoveItemModal || !selectedItem || !activeTable) return null;
 
-  const moveItemToSeat = (targetSeat) => {
+  const moveItemToSeat = async (targetSeat) => {
     const { item, seatNum } = selectedItem;
-    dispatch({ type: POS_ACTIONS.MOVE_ITEM, tableId: activeTable, itemId: item.id, fromSeat: seatNum, toSeat: targetSeat });
+    await actions.moveItem(activeTable, item.id, seatNum, targetSeat);
     setShowMoveItemModal(false);
     setShowItemActions(false);
     setSelectedItem(null);

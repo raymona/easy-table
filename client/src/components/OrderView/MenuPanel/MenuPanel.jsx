@@ -1,14 +1,16 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { MENU, COURSES } from '../../../data/menu';
-import { usePOS, useUI, POS_ACTIONS } from '../../../context';
+import { usePOS, useUI } from '../../../context';
+import { usePOSActions } from '../../../hooks/usePOSActions';
 import { generateId } from '../../../utils/idGenerator';
 import MenuItem from './MenuItem';
 
 const STATUS_NEW = 'new';
 
 export default function MenuPanel() {
-  const { state, dispatch } = usePOS();
+  const { state } = usePOS();
   const { tableStates, tabStates, daypart } = state;
+  const actions = usePOSActions();
   const {
     activeTable, activeTab,
     activeSeat,
@@ -53,8 +55,8 @@ export default function MenuPanel() {
   }, [currentOrder]);
 
   // ── Handlers ──────────────────────────────────────────────────────────────
-  const addItemToOrder = (item) => {
-    dispatch({ type: POS_ACTIONS.ADD_ITEM, tableId: activeTable, tabId: activeTab, seatNum: activeSeat, item });
+  const addItemToOrder = async (item) => {
+    await actions.addItem(activeTable, activeTab, activeSeat, item);
   };
 
   const handleMenuItemClick = (item) => {
@@ -138,7 +140,7 @@ export default function MenuPanel() {
 
       <div className="action-bar">
         {hasUnsent && (
-          <button className="action-btn send" onClick={() => dispatch({ type: POS_ACTIONS.SEND_ORDER, tableId: activeTable, tabId: activeTab })}>
+          <button className="action-btn send" onClick={() => actions.sendOrder(activeTable, activeTab)}>
             Send Order
           </button>
         )}

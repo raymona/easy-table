@@ -1,9 +1,11 @@
 import React from 'react';
-import { usePOS, useUI, POS_ACTIONS } from '../../context';
+import { usePOS, useUI } from '../../context';
+import { usePOSActions } from '../../hooks/usePOSActions';
 
 export default function VoidModal() {
-  const { state, dispatch } = usePOS();
+  const { state } = usePOS();
   const voidReasons = state.adminConfig?.voidReasons || [];
+  const actions = usePOSActions();
   const {
     showVoidModal, setShowVoidModal,
     voidReason, setVoidReason,
@@ -14,10 +16,10 @@ export default function VoidModal() {
 
   if (!showVoidModal || !selectedItem) return null;
 
-  const voidItem = () => {
+  const voidItem = async () => {
     if (!voidReason) return;
     const { item, seatNum } = selectedItem;
-    dispatch({ type: POS_ACTIONS.VOID_ITEM, tableId: activeTable, tabId: activeTab, seatNum, itemId: item.id, reason: voidReason });
+    await actions.voidItem(activeTable, activeTab, seatNum, item.id, voidReason);
     setShowItemActions(false);
     setSelectedItem(null);
     setShowVoidModal(false);

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { CARD_TYPES } from '../../data/menu';
-import { usePOS, useUI, POS_ACTIONS } from '../../context';
+import { usePOS, useUI } from '../../context';
+import { usePOSActions } from '../../hooks/usePOSActions';
 import { generateId } from '../../utils/idGenerator';
 import {
   getSubtotal, getTax, getSeatTotal, applyDiscount,
@@ -8,8 +9,9 @@ import {
 } from '../../utils/calculations';
 
 export default function PaymentModal() {
-  const { state, dispatch } = usePOS();
+  const { state } = usePOS();
   const { tableStates, tablePayments, tabStates, giftCards, adminConfig } = state;
+  const actions = usePOSActions();
   const {
     showPaymentModal, setShowPaymentModal,
     activeTable, setActiveTable,
@@ -87,7 +89,7 @@ export default function PaymentModal() {
     setPayFullBill(true);
   };
 
-  const closeTableBill = (payments) => {
+  const closeTableBill = async (payments) => {
     const tableData = tableStates[activeTable];
     const totalPaid = payments.reduce((s, p) => s + p.amount, 0);
     const closedBill = {
@@ -107,14 +109,14 @@ export default function PaymentModal() {
       closedAt: Date.now(),
       openedAt: tableData.openedAt,
     };
-    dispatch({ type: POS_ACTIONS.CLOSE_TABLE_BILL, tableId: activeTable, closedBill });
+    await actions.closeTableBill(activeTable, closedBill);
     setAppliedDiscount(null);
     setActiveTable(null);
     setShowPaymentModal(false);
     setView('floor');
   };
 
-  const processPayment = () => {
+  const processPayment = async () => {
     const amount = parseFloat(paymentAmount) || 0;
     if (amount <= 0) return;
     const payment = {
@@ -123,7 +125,7 @@ export default function PaymentModal() {
     };
 
     if (selectedPaymentMethod === 'gift' && giftCardCode) {
-      dispatch({ type: POS_ACTIONS.REDEEM_GIFT_CARD, code: giftCardCode.trim().toUpperCase(), amount });
+      actions.redeemGiftCard(giftCardCode.trim().toUpperCase(), amount);
     }
 
     if (isTableView) {
@@ -140,7 +142,7 @@ export default function PaymentModal() {
           ? [...currentTablePayments.paidSeats, selectedPaySeat]
           : currentTablePayments.paidSeats;
 
-        dispatch({ type: POS_ACTIONS.PROCESS_TABLE_PAYMENT, tableId: activeTable, payment, newSeatPayments, newPaidSeats });
+        await actions.processPayment(activeTable, payment, newSeatPayments, newPaidSeats);
 
         const seatsWithItems = Object.entries(tableStates[activeTable]?.orders || {})
           .filter(([, items]) => items.length > 0)
@@ -148,7 +150,7 @@ export default function PaymentModal() {
         const allPaid = seatsWithItems.every(s => newPaidSeats.includes(s));
 
         if (allPaid) {
-          closeTableBill(newPayments);
+          await closeTableBill(newPayments);
         } else if (seatFullyPaid) {
           const nextUnpaid = seatsWithItems.find(s => !newPaidSeats.includes(s));
           if (nextUnpaid !== undefined) {
@@ -168,9 +170,9 @@ export default function PaymentModal() {
       } else {
         // Pay full bill
         const totalPaid = newPayments.reduce((s, p) => s + p.amount, 0);
-        dispatch({ type: POS_ACTIONS.PROCESS_TABLE_PAYMENT, tableId: activeTable, payment, newSeatPayments: currentTablePayments.seatPayments, newPaidSeats: currentTablePayments.paidSeats });
+        await actions.processPayment(activeTable, payment, currentTablePayments.seatPayments, currentTablePayments.paidSeats);
         if (totalPaid >= total) {
-          closeTableBill(newPayments);
+          await closeTableBill(newPayments);
         } else {
           setPaymentAmount((total - totalPaid).toFixed(2));
           setSelectedPaymentMethod(null);
@@ -195,7 +197,7 @@ export default function PaymentModal() {
         closedAt: Date.now(),
         openedAt: tabData.openedAt,
       };
-      dispatch({ type: POS_ACTIONS.CLOSE_TAB_BILL, tabId: activeTab, closedBill });
+      await actions.closeTabBill(activeTab, closedBill);
       setAppliedDiscount(null);
       setActiveTab(null);
       setShowPaymentModal(false);
@@ -220,8 +222,8 @@ export default function PaymentModal() {
     }
   };
 
-  const voidLastPayment = () => {
-    if (activeTable) dispatch({ type: POS_ACTIONS.VOID_LAST_PAYMENT, tableId: activeTable });
+  const voidLastPayment = async () => {
+    if (activeTable) await actions.voidLastPayment(activeTable);
   };
 
   // ── Render helpers ────────────────────────────────────────────────────────

@@ -1,13 +1,14 @@
 import React from 'react';
 import { COOK_TEMPS, COURSES } from '../../data/menu';
-import { usePOS, useUI, POS_ACTIONS } from '../../context';
+import { useUI } from '../../context';
+import { usePOSActions } from '../../hooks/usePOSActions';
 import { generateId } from '../../utils/idGenerator';
 
 const STATUS_NEW = 'new';
 const MOD_PREFIXES = ['no', 'side', 'sub', 'extra', 'light'];
 
 export default function ModScreen() {
-  const { dispatch } = usePOS();
+  const actions = usePOSActions();
   const {
     showModScreen, setShowModScreen,
     pendingItem, setPendingItem,
@@ -27,7 +28,7 @@ export default function ModScreen() {
 
   const close = () => { setShowModScreen(false); setEditingItem(null); };
 
-  const confirmModScreen = () => {
+  const confirmModScreen = async () => {
     const mods = [];
     if (itemCookTemp) mods.push(itemCookTemp);
     if (itemAddOns.length) mods.push(...itemAddOns.map(a => a.name));
@@ -61,17 +62,11 @@ export default function ModScreen() {
       for (let i = 1; i < itemQuantity; i++) {
         extraItems.push({ ...pendingItem, id: generateId(), price: finalPrice, basePrice: pendingItem.price, selectedAddOns: itemAddOns, quantity: 1, mods, course: itemCourse, status: oldItem.status, addedAt: Date.now() });
       }
-      dispatch({ type: POS_ACTIONS.UPDATE_ITEM, tableId: activeTable, tabId: activeTab, seatNum, itemId: oldItem.id, updatedItem, extraItems });
+      await actions.updateItem(activeTable, activeTab, seatNum, oldItem.id, updatedItem, extraItems);
       setEditingItem(null);
     } else {
       for (let i = 0; i < itemQuantity; i++) {
-        dispatch({
-          type: POS_ACTIONS.ADD_ITEM,
-          tableId: activeTable,
-          tabId: activeTab,
-          seatNum: activeSeat,
-          item: { ...pendingItem, id: generateId(), price: finalPrice, basePrice: pendingItem.price, selectedAddOns: itemAddOns, quantity: 1, mods, course: itemCourse, status: STATUS_NEW, addedAt: Date.now() },
-        });
+        await actions.addItem(activeTable, activeTab, activeSeat, { ...pendingItem, id: generateId(), price: finalPrice, basePrice: pendingItem.price, selectedAddOns: itemAddOns, quantity: 1, mods, course: itemCourse, status: STATUS_NEW, addedAt: Date.now() });
       }
     }
     setShowModScreen(false);

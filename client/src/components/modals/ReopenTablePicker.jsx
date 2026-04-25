@@ -1,10 +1,12 @@
 import React from 'react';
 import { TABLES } from '../../data/menu';
-import { usePOS, useUI, POS_ACTIONS } from '../../context';
+import { usePOS, useUI } from '../../context';
+import { usePOSActions } from '../../hooks/usePOSActions';
 
 export default function ReopenTablePicker() {
-  const { state, dispatch } = usePOS();
+  const { state } = usePOS();
   const { tableStates } = state;
+  const actions = usePOSActions();
   const {
     showReopenTablePicker, setShowReopenTablePicker,
     selectedClosedBill, setSelectedClosedBill,
@@ -16,8 +18,8 @@ export default function ReopenTablePicker() {
 
   const availableTables = TABLES.filter(t => !tableStates[t.id]).map(t => t.id);
 
-  const reopenBillToTable = (tableId) => {
-    dispatch({ type: POS_ACTIONS.REOPEN_BILL, bill: selectedClosedBill, newTableId: tableId });
+  const reopenBillToTable = async (tableId) => {
+    await actions.reopenBill(selectedClosedBill, tableId, null);
     setShowReopenTablePicker(false);
     setSelectedClosedBill(null);
     setShowServerScreen(false);

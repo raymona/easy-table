@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { usePOS, POS_ACTIONS } from '../../../context';
+import { usePOS } from '../../../context';
+import { usePOSActions } from '../../../hooks/usePOSActions';
 
 const VENUE_MODES = [
   { value: 'restaurant', label: 'Full Service Restaurant', desc: 'Multi-course, seat-based ordering, floor plan' },
@@ -9,7 +10,8 @@ const VENUE_MODES = [
 ];
 
 export default function GeneralSection() {
-  const { state, dispatch } = usePOS();
+  const { state } = usePOS();
+  const actions = usePOSActions();
   const { adminConfig, serviceConfig } = state;
 
   const [localMode, setLocalMode] = useState(adminConfig.mode);
@@ -26,17 +28,14 @@ export default function GeneralSection() {
     }));
   };
 
-  const save = () => {
+  const save = async () => {
     const taxRate = Math.max(0, Math.min(100, parseFloat(localTaxRate) || 0)) / 100;
-    dispatch({
-      type: POS_ACTIONS.UPDATE_ADMIN_CONFIG,
-      updates: {
-        mode: localMode,
-        taxRate,
-        tipPresets: localTipPresets.map(v => parseInt(v) || 0),
-      },
+    await actions.updateAdminConfig({
+      mode: localMode,
+      taxRate,
+      tipPresets: localTipPresets.map(v => parseInt(v) || 0),
     });
-    dispatch({ type: POS_ACTIONS.UPDATE_SERVICE_CONFIG, serviceConfig: localServiceConfig });
+    await actions.updateServiceConfig(localServiceConfig);
   };
 
   return (

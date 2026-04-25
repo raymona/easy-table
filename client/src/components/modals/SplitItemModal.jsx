@@ -1,8 +1,9 @@
 import React from 'react';
-import { usePOS, useUI, POS_ACTIONS } from '../../context';
+import { useUI } from '../../context';
+import { usePOSActions } from '../../hooks/usePOSActions';
 
 export default function SplitItemModal() {
-  const { dispatch } = usePOS();
+  const actions = usePOSActions();
   const {
     showSplitItemModal, setShowSplitItemModal,
     splitWays, setSplitWays,
@@ -13,10 +14,10 @@ export default function SplitItemModal() {
 
   if (!showSplitItemModal || !selectedItem) return null;
 
-  const splitItem = () => {
+  const splitItem = async () => {
     if (splitWays < 2) return;
     const { item, seatNum } = selectedItem;
-    dispatch({ type: POS_ACTIONS.SPLIT_ITEM, tableId: activeTable, tabId: activeTab, seatNum, itemId: item.id, splitWays });
+    await actions.splitItem(activeTable, activeTab, seatNum, item.id, splitWays);
     setShowSplitItemModal(false);
     setShowItemActions(false);
     setSelectedItem(null);

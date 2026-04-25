@@ -1,11 +1,12 @@
 import React from 'react';
 import { generateId } from '../../utils/idGenerator';
-import { usePOS, useUI, POS_ACTIONS } from '../../context';
+import { useUI } from '../../context';
+import { usePOSActions } from '../../hooks/usePOSActions';
 
 const STATUS_NEW = 'new';
 
 export default function OpenItemModal() {
-  const { dispatch } = usePOS();
+  const actions = usePOSActions();
   const {
     showOpenItemModal, setShowOpenItemModal,
     openItemType, setOpenItemType,
@@ -16,7 +17,7 @@ export default function OpenItemModal() {
 
   if (!showOpenItemModal) return null;
 
-  const addOpenItem = () => {
+  const addOpenItem = async () => {
     if (!openItemName.trim() || !openItemPrice) return;
     const price = parseFloat(openItemPrice) || 0;
     if (price <= 0) return;
@@ -32,7 +33,7 @@ export default function OpenItemModal() {
       isOpenItem: true,
       openItemType,
     };
-    dispatch({ type: POS_ACTIONS.ADD_ITEM, tableId: activeTable, tabId: activeTab, seatNum: activeSeat, item });
+    await actions.addItem(activeTable, activeTab, activeSeat, item);
     setShowOpenItemModal(false);
   };
 

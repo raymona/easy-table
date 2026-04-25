@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { usePOS, POS_ACTIONS } from '../../../context';
+import { usePOS } from '../../../context';
+import { usePOSActions } from '../../../hooks/usePOSActions';
 
 export default function StaffSection() {
-  const { state, dispatch } = usePOS();
+  const { state } = usePOS();
+  const actions = usePOSActions();
   const [servers, setServers] = useState(
     JSON.parse(JSON.stringify(state.adminConfig.servers))
   );
@@ -19,8 +21,8 @@ export default function StaffSection() {
     setServers(prev => [...prev, { id: Date.now(), name: '', color: '#888888' }]);
   };
 
-  const save = () => {
-    dispatch({ type: POS_ACTIONS.UPDATE_ADMIN_CONFIG, updates: { servers } });
+  const save = async () => {
+    await actions.updateAdminConfig({ servers });
   };
 
   return (

@@ -1,10 +1,12 @@
 import React from 'react';
 import { generateId } from '../../utils/idGenerator';
-import { usePOS, useUI, POS_ACTIONS } from '../../context';
+import { usePOS, useUI } from '../../context';
+import { usePOSActions } from '../../hooks/usePOSActions';
 
 export default function NewTabModal() {
-  const { state, dispatch } = usePOS();
+  const { state } = usePOS();
   const { currentServer } = state;
+  const actions = usePOSActions();
   const {
     showNewTabModal, setShowNewTabModal,
     newTabName, setNewTabName,
@@ -13,11 +15,11 @@ export default function NewTabModal() {
 
   if (!showNewTabModal) return null;
 
-  const openNewTab = () => {
+  const openNewTab = async () => {
     if (!newTabName.trim()) return;
     const tabId = generateId();
-    dispatch({ type: POS_ACTIONS.OPEN_TAB, tabId, name: newTabName.trim(), server: currentServer });
-    setActiveTab(tabId);
+    const finalTabId = await actions.openTab(tabId, newTabName.trim(), currentServer);
+    setActiveTab(finalTabId);
     setActiveTable(null);
     setShowNewTabModal(false);
     setNewTabName('');
