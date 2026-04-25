@@ -1,6 +1,7 @@
 import React from 'react';
 import { usePOS, useUI } from '../context';
 import { useDaypart } from '../hooks/useDaypart';
+import { useInactivityTimeout } from '../hooks/useInactivityTimeout';
 import './POS.css';
 
 import SignIn from './SignIn/SignIn';
@@ -34,6 +35,7 @@ export default function POS() {
   const { view, activeTable, activeTab, adminUnlocked } = useUI();
 
   useDaypart(); // auto-switch daypart based on serviceConfig
+  useInactivityTimeout(); // auto-sign-out after inactivity
 
   if (!currentServer) return <SignIn />;
 

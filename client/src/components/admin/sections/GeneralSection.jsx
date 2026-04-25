@@ -17,6 +17,7 @@ export default function GeneralSection() {
   const [localMode, setLocalMode] = useState(adminConfig.mode);
   const [localTaxRate, setLocalTaxRate] = useState(String(Math.round(adminConfig.taxRate * 100)));
   const [localTipPresets, setLocalTipPresets] = useState([...adminConfig.tipPresets]);
+  const [localAutoSignOut, setLocalAutoSignOut] = useState(adminConfig.autoSignOutMinutes ?? 2);
   const [localServiceConfig, setLocalServiceConfig] = useState(
     JSON.parse(JSON.stringify(serviceConfig))
   );
@@ -34,6 +35,7 @@ export default function GeneralSection() {
       mode: localMode,
       taxRate,
       tipPresets: localTipPresets.map(v => parseInt(v) || 0),
+      autoSignOutMinutes: localAutoSignOut,
     });
     await actions.updateServiceConfig(localServiceConfig);
   };
@@ -109,6 +111,23 @@ export default function GeneralSection() {
           />
         ))}
         <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', alignSelf: 'center' }}>%</span>
+      </div>
+
+      <h3>Auto Sign-Out</h3>
+      <div className="admin-field-row">
+        <label>Timeout</label>
+        <select
+          value={localAutoSignOut}
+          onChange={e => setLocalAutoSignOut(parseInt(e.target.value))}
+          style={{ background: 'var(--bg)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 4, padding: '6px 8px' }}
+        >
+          <option value={0}>Disabled</option>
+          <option value={1}>1 minute</option>
+          <option value={2}>2 minutes</option>
+          <option value={3}>3 minutes</option>
+          <option value={5}>5 minutes</option>
+          <option value={10}>10 minutes</option>
+        </select>
       </div>
 
       <div className="modal-actions" style={{ marginTop: 8 }}>

@@ -125,6 +125,7 @@ const initialState = {
       { id: 4, name: 'Yaro', color: '#8B5CF6' },
       { id: 5, name: 'Ashley', color: '#EC4899' },
     ],
+    autoSignOutMinutes: 2,  // 0 = disabled
   },
   // Backend integration — maps local IDs to backend CUIDs
   sessionMap: {},     // { [tableNumber]: backendSessionId }
