@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { usePOS, useUI } from '../../context';
 
 export default function AdminPinModal() {
@@ -10,7 +10,7 @@ export default function AdminPinModal() {
   const [error, setError] = useState('');
   const [shake, setShake] = useState(false);
 
-  const appendDigit = (d) => {
+  const appendDigit = useCallback((d) => {
     if (digits.length >= 4) return;
     const next = [...digits, d];
     setDigits(next);
@@ -24,18 +24,28 @@ export default function AdminPinModal() {
         setTimeout(() => { setDigits([]); setShake(false); }, 600);
       }
     }
-  };
+  }, [digits, correctPin, setAdminUnlocked]);
 
-  const backspace = () => {
+  const backspace = useCallback(() => {
     setDigits(prev => prev.slice(0, -1));
     setError('');
-  };
+  }, []);
 
-  const cancel = () => {
+  const cancel = useCallback(() => {
     setView('floor');
     setDigits([]);
     setError('');
-  };
+  }, [setView]);
+
+  useEffect(() => {
+    const handleKey = (e) => {
+      if (e.key >= '0' && e.key <= '9') appendDigit(e.key);
+      else if (e.key === 'Backspace') backspace();
+      else if (e.key === 'Escape') cancel();
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [appendDigit, backspace, cancel]);
 
   return (
     <div className="admin-pin-overlay">
