@@ -203,6 +203,33 @@ body {
   border-color: var(--server-color, var(--border));
 }
 
+.pin-entry {
+  margin: 24px 0;
+}
+
+.pin-input {
+  width: 120px;
+  font-size: 2rem;
+  text-align: center;
+  letter-spacing: 8px;
+  padding: 12px;
+  background: var(--bg-raised);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+}
+
+.pin-input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.pin-error {
+  color: var(--danger);
+  margin-top: 8px;
+  font-size: 0.9rem;
+}
+
 /* ============ FLOOR VIEW ============ */
 
 .floor-view {

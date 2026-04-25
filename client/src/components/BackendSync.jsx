@@ -24,10 +24,11 @@ export default function BackendSync() {
 
     async function hydrate() {
       try {
-        const [tablesData, tabsData, billsData] = await Promise.all([
+        const [tablesData, tabsData, billsData, configData] = await Promise.all([
           posApi.fetchOpenTables(),
           posApi.fetchOpenTabs(),
           posApi.fetchClosedBills(),
+          posApi.fetchAdminConfig(),
         ]);
 
         const { tableStates, tablePayments, sessionMap, itemIdMap } =
@@ -36,10 +37,10 @@ export default function BackendSync() {
         const { tabStates, tabSessionMap, itemIdMap: tabItemIdMap } =
           transformTabsToState(tabsData.tabs || []);
 
-        // Admin config comes from the venue object already loaded in AuthContext
-        const adminConfig = venue ? transformAdminConfig(venue) : undefined;
-        const serviceConfig = venue?.serviceConfigs
-          ? transformServiceConfig(venue.serviceConfigs)
+        const venueConfig = configData.config || venue;
+        const adminConfig = venueConfig ? transformAdminConfig(venueConfig) : undefined;
+        const serviceConfig = venueConfig?.serviceConfigs
+          ? transformServiceConfig(venueConfig.serviceConfigs)
           : undefined;
 
         dispatch({

@@ -1,5 +1,10 @@
 import api from './api';
 
+// ── Auth (public) ───────────────────────────────────────────────────────────
+
+export const fetchVenues = () => api.get('/api/auth/venues');
+export const fetchStaff = (venueId) => api.get(`/api/auth/staff?venueId=${venueId}`);
+
 // ── Fetch ────────────────────────────────────────────────────────────────────
 
 export const fetchOpenTables = () => api.get('/api/tables');

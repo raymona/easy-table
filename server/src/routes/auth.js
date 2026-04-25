@@ -37,7 +37,7 @@ router.post('/login', async (req, res, next) => {
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -98,6 +98,19 @@ router.get('/me', authenticate, async (req, res, next) => {
     });
 
     res.json({ staff, venue });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/auth/venues — Get available venues (public, for sign-in)
+router.get('/venues', async (req, res, next) => {
+  try {
+    const venues = await prisma.venue.findMany({
+      select: { id: true, name: true },
+      orderBy: { name: 'asc' },
+    });
+    res.json({ venues });
   } catch (err) {
     next(err);
   }
