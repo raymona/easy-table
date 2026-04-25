@@ -330,7 +330,7 @@ export function usePOSActions() {
       // Route relational data to dedicated sync endpoints
       if (updates.servers) {
         const { staff } = await posApi.apiSyncStaff(updates.servers);
-        resolvedUpdates.servers = staff.map(s => ({ id: s.id, name: s.name, color: s.color, role: s.role }));
+        resolvedUpdates.servers = staff.map(s => ({ id: s.id, name: s.name, pin: s.pin || '', color: s.color, role: s.role }));
       }
       if (updates.discountPresets) {
         const { discounts } = await posApi.apiSyncDiscounts(updates.discountPresets);

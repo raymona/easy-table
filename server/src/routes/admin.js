@@ -71,13 +71,12 @@ router.put('/staff/sync', authenticate, requireRole('admin'), async (req, res, n
 
       if (match) {
         accountedIds.add(match.id);
-        await prisma.staff.update({
-          where: { id: match.id },
-          data: { name: s.name, color: s.color, role: s.role || 'server', active: true },
-        });
+        const data = { name: s.name, color: s.color, role: s.role || 'server', active: true };
+        if (s.pin !== undefined) data.pin = s.pin || null;
+        await prisma.staff.update({ where: { id: match.id }, data });
       } else {
         await prisma.staff.create({
-          data: { venueId, name: s.name, color: s.color || '#3B82F6', role: s.role || 'server' },
+          data: { venueId, name: s.name, pin: s.pin || null, color: s.color || '#3B82F6', role: s.role || 'server' },
         });
       }
     }
@@ -91,7 +90,7 @@ router.put('/staff/sync', authenticate, requireRole('admin'), async (req, res, n
 
     const updated = await prisma.staff.findMany({
       where: { venueId, active: true },
-      select: { id: true, name: true, role: true, color: true, active: true },
+      select: { id: true, name: true, pin: true, role: true, color: true, active: true },
       orderBy: { name: 'asc' },
     });
     res.json({ staff: updated });

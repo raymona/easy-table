@@ -144,6 +144,7 @@ export function transformAdminConfig(venue) {
     servers: (venue.staff || []).map(s => ({
       id: s.id,
       name: s.name,
+      pin: s.pin || '',
       color: s.color,
       role: s.role,
     })),

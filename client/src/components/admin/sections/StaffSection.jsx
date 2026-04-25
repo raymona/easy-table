@@ -18,7 +18,7 @@ export default function StaffSection() {
   };
 
   const addServer = () => {
-    setServers(prev => [...prev, { id: Date.now(), name: '', color: '#888888' }]);
+    setServers(prev => [...prev, { id: Date.now(), name: '', pin: '', color: '#888888' }]);
   };
 
   const save = async () => {
@@ -35,6 +35,15 @@ export default function StaffSection() {
             placeholder="Name"
             value={server.name}
             onChange={e => updateServer(idx, 'name', e.target.value)}
+          />
+          <input
+            type="text"
+            placeholder="PIN"
+            value={server.pin || ''}
+            onChange={e => updateServer(idx, 'pin', e.target.value.replace(/\D/g, '').slice(0, 4))}
+            maxLength={4}
+            inputMode="numeric"
+            style={{ width: 70, textAlign: 'center', letterSpacing: 4 }}
           />
           <input
             type="color"
