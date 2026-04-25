@@ -3,6 +3,13 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function main() {
+  // Skip if already seeded
+  const existingVenue = await prisma.venue.findFirst();
+  if (existingVenue) {
+    console.log('Database already seeded, skipping.');
+    return;
+  }
+
   console.log('Seeding Easy Table database...');
 
   // ── Venue ──────────────────────────────────────────────────
