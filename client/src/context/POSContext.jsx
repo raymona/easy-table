@@ -392,21 +392,23 @@ function posReducer(state, action) {
     }
 
     case POS_ACTIONS.SPLIT_ITEM: {
-      const { tableId, tabId, seatNum, itemId, splitWays } = action;
+      const { tableId, tabId, seatNum, itemId, splitWays, backendCopies } = action;
       const source = tableId
         ? (state.tableStates[tableId]?.orders[seatNum] || [])
         : (state.tabStates[tabId]?.items || []);
       const original = source.find((i) => i.id === itemId);
       if (!original) return state;
-      const splitPrice = Math.round((original.price / splitWays) * 100) / 100;
-      const splitItems = Array.from({ length: splitWays }, () => ({
-        ...original,
-        id: generateId(),
-        name: `1/${splitWays} ${original.name}`,
-        price: splitPrice,
-        originalPrice: original.price,
-        splitFrom: original.id,
-      }));
+      const splitItems = backendCopies || (() => {
+        const splitPrice = Math.round((original.price / splitWays) * 100) / 100;
+        return Array.from({ length: splitWays }, () => ({
+          ...original,
+          id: generateId(),
+          name: `1/${splitWays} ${original.name}`,
+          price: splitPrice,
+          originalPrice: original.price,
+          splitFrom: original.id,
+        }));
+      })();
       if (tableId) {
         const table = state.tableStates[tableId];
         const orders = {

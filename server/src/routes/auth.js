@@ -136,4 +136,14 @@ router.get('/staff', async (req, res, next) => {
   }
 });
 
+// POST /api/auth/logout — Clear refresh token cookie
+router.post('/logout', (req, res) => {
+  res.clearCookie('refreshToken', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+  });
+  res.json({ ok: true });
+});
+
 export default router;

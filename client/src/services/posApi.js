@@ -4,6 +4,7 @@ import api from './api';
 
 export const fetchVenues = () => api.get('/api/auth/venues');
 export const fetchStaff = (venueId) => api.get(`/api/auth/staff?venueId=${venueId}`);
+export const apiLogout = () => api.post('/api/auth/logout');
 
 // ── Fetch ────────────────────────────────────────────────────────────────────
 

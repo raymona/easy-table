@@ -18,6 +18,11 @@ export default function BackendSync() {
   const { backendEnabled, isAuthenticated, venue } = useAuth();
   const hydrated = useRef(false);
 
+  // Reset hydration flag on logout so re-login triggers a fresh hydrate
+  useEffect(() => {
+    if (!isAuthenticated) hydrated.current = false;
+  }, [isAuthenticated]);
+
   useEffect(() => {
     if (!backendEnabled || !isAuthenticated || hydrated.current) return;
     hydrated.current = true;

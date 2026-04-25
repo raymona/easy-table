@@ -9,89 +9,79 @@ Designed to support three deployment modes (configured at runtime — no code ch
 - **Hotel restaurant** — all FSR features + "Charge to Room" payment method → PMS integration
 
 ## Tech Stack
-- **Framework**: React 18 (hooks only — no class components)
-- **Build**: Vite 5
+- **Frontend**: React 18 (hooks only — no class components), Vite 5
+- **Backend**: Express 5, Prisma ORM, PostgreSQL
 - **State**: React `useReducer` (POSContext) + `useState` (UIContext)
+- **Auth**: JWT (short-lived access token + httpOnly refresh cookie), PIN-based staff login
 - **Styling**: Plain CSS with custom properties (dark theme)
 - **Testing**: Vitest + @testing-library/react + jsdom
+- **Deployment**: Vercel (frontend) + Railway (backend + PostgreSQL)
 - **No router yet** — single-page, view controlled via UI context
 
 ## Running the App
 ```bash
+# Client (from client/)
 npm run dev       # dev server at http://localhost:5173
 npm run build     # production build → dist/
 npm run preview   # preview production build
 npm test          # run tests once (vitest run)
 npm run test:watch  # watch mode
 npm run test:ui   # vitest UI
+
+# Server (from server/)
+npm run dev       # nodemon dev server at http://localhost:3001
+npm start         # production: prisma db push + seed + node
+
+# Backend integration
+# Set VITE_API_URL=http://localhost:3001 in client/.env.local to enable backend mode.
+# Without it, the app runs standalone with localStorage only.
 ```
 
 ## Directory Structure
 ```
-src/
+client/src/
 ├── components/
-│   ├── POS.jsx              ← thin shell: renders views + mounts all modals (66 lines)
+│   ├── POS.jsx              ← thin shell: renders views + mounts all modals
 │   ├── POS.css              ← full styles (CSS split planned)
-│   ├── SignIn/SignIn.jsx
+│   ├── BackendSync.jsx      ← invisible; hydrates state from backend on login
+│   ├── SignIn/SignIn.jsx     ← PIN-based login (backend) or click-to-sign-in (local)
 │   ├── Header/Header.jsx
 │   ├── FloorView/
-│   │   ├── FloorView.jsx
-│   │   └── FloorTable.jsx
 │   ├── TabsView/TabsView.jsx
 │   ├── OrderView/
-│   │   ├── OrderView.jsx
-│   │   ├── OrderPanel/
-│   │   │   ├── OrderPanel.jsx
-│   │   │   ├── SeatSection.jsx
-│   │   │   └── OrderItem.jsx
-│   │   └── MenuPanel/
-│   │       ├── MenuPanel.jsx
-│   │       └── MenuItem.jsx
-│   ├── modals/
-│   │   ├── SeatPickerModal.jsx
-│   │   ├── NewTabModal.jsx
-│   │   ├── ModScreen.jsx
-│   │   ├── ItemActionsModal.jsx
-│   │   ├── VoidModal.jsx
-│   │   ├── SplitItemModal.jsx
-│   │   ├── MoveItemModal.jsx
-│   │   ├── PrintChequeModal.jsx
-│   │   ├── PaymentModal.jsx
-│   │   ├── DiscountModal.jsx
-│   │   ├── OpenItemModal.jsx
-│   │   ├── TransferModal.jsx
-│   │   ├── ReopenTablePicker.jsx
-│   │   ├── EditPaymentModal.jsx
-│   │   └── ServerScreen.jsx
-│   └── admin/
-│       ├── AdminPinModal.jsx    ← 4-digit PIN gate
-│       ├── AdminShell.jsx       ← sidebar + content shell
-│       ├── AdminLayout.jsx      ← old scaffold (unused)
-│       └── sections/
-│           ├── GeneralSection.jsx   ← venue mode, service times, tax, tips
-│           ├── DiscountsSection.jsx
-│           ├── VoidReasonsSection.jsx
-│           └── StaffSection.jsx
+│   ├── modals/              ← SeatPicker, Payment, Void, Split, Transfer, etc.
+│   └── admin/               ← PIN-gated admin panel (General, Staff, Discounts, VoidReasons)
 ├── context/
-│   ├── POSContext.jsx       ← business data (useReducer)
+│   ├── POSContext.jsx       ← business data (useReducer), localStorage persistence
 │   ├── UIContext.jsx        ← UI/navigation state (useState)
-│   └── index.js             ← re-exports usePOS, useUI, POS_ACTIONS, getServerInfo
+│   ├── AuthContext.jsx      ← JWT auth state, login/logout, token refresh
+│   └── index.js             ← re-exports usePOS, useUI, usePOSActions, POS_ACTIONS, getServerInfo
 ├── hooks/
+│   ├── usePOSActions.js     ← central backend integration hook (see below)
 │   ├── useOrderTotals.js    ← subtotal, tax, total (discount-aware), seat totals
 │   ├── usePayments.js       ← paid amounts, remaining, paid seats
 │   └── useDaypart.js        ← auto-switching lunch/dinner
+├── services/
+│   ├── api.js               ← fetch wrapper, token management, auto-refresh on 401
+│   ├── posApi.js            ← thin async wrappers for all backend API endpoints
+│   └── posTransforms.js     ← convert backend responses ↔ local state shapes
 ├── utils/
 │   ├── calculations.js      ← pure math (TAX_RATE, getTotal, etc.)
 │   ├── orderHelpers.js      ← groupItemsByCourse, sortItemsByCourse
 │   ├── idGenerator.js       ← generateId()
 │   └── __tests__/
-├── config.js                ← APP_MODE legacy (superseded by adminConfig.mode in state)
 ├── data/
-│   └── menu.js              ← MENU, SERVERS, TABLES, TAX_RATE, constants
-├── styles/
-│   └── components/          ← CSS split from POS.css (planned)
+│   └── menu.js              ← MENU, SERVERS, TABLES, TAX_RATE, constants (local-mode fallbacks)
 └── test/
     └── setup.js
+
+server/src/
+├── index.js                 ← Express app, CORS, cookie-parser, route mounting
+├── routes/                  ← auth, tables, tabs, orders, payments, bills, admin, menu, floor
+├── middleware/auth.js       ← JWT authenticate middleware
+├── lib/prisma.js            ← Prisma singleton
+├── utils/errors.js          ← AppError class
+└── socket.js                ← Socket.IO setup (for future real-time KDS)
 ```
 
 ## State Management Pattern
@@ -102,7 +92,7 @@ Uses `useReducer`. Returns `{ state, dispatch }`.
 State shape:
 ```js
 {
-  currentServer: null | serverId,
+  currentServer: null | serverId,   // numeric (local) or CUID string (backend)
   daypart: 'lunch' | 'dinner',
   tableStates: {
     [tableId]: { server, seats, orders: { [seatNum]: item[] }, voidedItems: [], openedAt }
@@ -125,6 +115,10 @@ State shape:
     voidReasons: string[],                       // runtime-editable
     servers: [{ id, name, color }],              // runtime-editable
   },
+  // Backend integration — maps local IDs to backend CUIDs
+  sessionMap: {},     // { [tableNumber]: backendSessionId }
+  tabSessionMap: {},  // { [localTabId]: backendTabSessionId }
+  itemIdMap: {},      // { [localItemId]: backendItemId }
 }
 ```
 State is persisted to localStorage (`easy-table-v2`, `STATE_VERSION = 3`). On load, stored state is merged over `initialState` so new fields always have defaults.
@@ -146,7 +140,28 @@ const { view, activeTable, setShowPaymentModal, ... } = useUI();
 ```
 
 ### Component pattern
-Each component is responsible for its own handlers. Components consume `usePOS()` and `useUI()` directly — no prop drilling. `POS.jsx` is a pure mount/render shell.
+Components consume `usePOSActions()` for any action that should sync to the backend, and `useUI()` for navigation/modal state. `POS.jsx` is a pure mount/render shell.
+
+**Important:** Components must NOT use raw `dispatch` for synced actions. Only `SET_SERVER`, `SIGN_OUT` (in SignIn.jsx only), and `SET_DAYPART` use raw dispatch. Everything else goes through `usePOSActions()`.
+
+### usePOSActions hook (backend integration)
+Central hook in `hooks/usePOSActions.js`. Returns named action functions:
+- **Backend enabled** (`VITE_API_URL` set): calls API first, then dispatches with backend IDs
+- **Backend disabled**: dispatches directly (localStorage-only mode, no behavior change)
+
+Components use `const actions = usePOSActions()` then `await actions.openTable(...)` instead of `dispatch({type: POS_ACTIONS.OPEN_TABLE, ...})`.
+
+### BackendSync
+Invisible component (`components/BackendSync.jsx`) that hydrates local state from the backend when a user authenticates. Fetches open tables, tabs, closed bills, and admin config, transforms them via `posTransforms.js`, and dispatches `HYDRATE_FROM_BACKEND`. Resets on logout so re-login triggers a fresh hydrate.
+
+### Auth flow (backend mode)
+1. `AuthProvider` tries token refresh on mount (httpOnly cookie)
+2. If no session → SignIn shows staff list fetched from `/api/auth/staff`
+3. User taps name → PIN entry → `POST /api/auth/login` → JWT issued
+4. `BackendSync` hydrates state from backend
+5. Sign-out calls `POST /api/auth/logout` (clears cookie) + clears local token
+
+Staff PINs (seeded): Ray=1111, Nik=2222, Hannah=3333, Yaro=4444, Ashley=5555
 
 ### Key Reducer Actions (POSContext)
 | Action | Description |
@@ -181,6 +196,69 @@ Each component is responsible for its own handlers. Components consume `usePOS()
 | `UPDATE_SERVICE_CONFIG` | Update lunch/dinner service time windows |
 | `UPDATE_ADMIN_CONFIG` | Partial-merge updates into `adminConfig` |
 | `NEW_DAY` | Clear localStorage + reset to initialState |
+| `HYDRATE_FROM_BACKEND` | Bulk-replace state from backend API responses |
+| `SET_SESSION_ID` | Map tableNumber → backend session CUID |
+| `MAP_ITEM_ID` | Map local item ID → backend item CUID |
+
+## Database Schema (Prisma)
+Multi-tenant via `Venue`. All models except `GiftCard` belong to a venue.
+
+| Model | Purpose |
+|-------|---------|
+| `Venue` | Tenant — name, province, mode, taxRate, tipPresets, adminPin |
+| `Staff` | Server/bartender/manager/admin — name, PIN, role, color |
+| `FloorSection` | Dining room / lounge / patio groupings |
+| `Table` | Physical table — number, x/y position, shape, defaultSeats |
+| `TableSession` | Open check on a table — links staff, seatCount, status |
+| `TabSession` | Open bar tab — name, staff, preAuthRef/cardLast4 |
+| `OrderItem` | Individual item — price, course, status, mods, addOns, cookTemp, allergies, notes |
+| `Payment` | Transaction — method, amount, tipAmount, seatNumber, roomNumber, processorRef |
+| `Bill` | Closed session — subtotal, discount, tax, total, tipTotal, amountPaid |
+| `MenuCategory` | Category with daypart filter (lunch/dinner/all) |
+| `MenuItem` | Menu item — price, needsModScreen, hasCookTemp, addOns, kdsRouting |
+| `DiscountPreset` | Preset discount — label, type (percent/fixed), value |
+| `VoidReason` | Configurable void reason labels |
+| `ServiceConfig` | Lunch/dinner start and end times |
+| `KdsStation` | Kitchen display station — name, key, color |
+| `GiftCard` | Gift card — code, balance |
+| `ClockEvent` | Time clock events (clock_in/out, break_start/end) |
+
+ID strategy: CUID strings (`@default(cuid())`). Tables also have a `number` (display number, unique per venue).
+
+Item status lifecycle in DB: `new` → `sent` → `fired` → `bumped` (or `voided` at any point).
+
+## Environment Variables
+
+### Server (`server/.env`)
+| Variable | Required | Example | Purpose |
+|----------|----------|---------|---------|
+| `DATABASE_URL` | Yes | `postgresql://...` | Prisma connection string |
+| `JWT_SECRET` | Yes | random 64-char string | Access token signing |
+| `JWT_REFRESH_SECRET` | Yes | random 64-char string | Refresh token signing |
+| `CLIENT_URL` | No | `http://localhost:5173` | CORS origin (comma-separated for multiple) |
+| `PORT` | No | `3001` | Server port (default 3001) |
+| `NODE_ENV` | No | `production` | Controls cookie secure/sameSite flags |
+
+### Client (`client/.env.local`)
+| Variable | Required | Example | Purpose |
+|----------|----------|---------|---------|
+| `VITE_API_URL` | No | `http://localhost:3001` | Backend URL. Omit for localStorage-only mode |
+
+## Backend API Routes
+All routes prefixed with `/api`. Auth routes are public; all others require JWT via `authenticate` middleware.
+
+| Group | Prefix | Key Endpoints |
+|-------|--------|---------------|
+| Auth | `/auth` | `POST /login`, `POST /refresh`, `POST /logout`, `GET /me`, `GET /venues`, `GET /staff` |
+| Tables | `/tables` | `GET /`, `POST /:num/open`, `PATCH /:id/seats`, `POST /:id/close`, `POST /:id/transfer` |
+| Tabs | `/tabs` | `GET /`, `POST /open`, `POST /:id/close` |
+| Orders | `/orders` | `POST /items`, `PATCH /items/:id`, `DELETE /items/:id`, `POST /send`, `POST /fire-course`, `POST /move-item`, `POST /split-item`, `POST /comp-item`, `POST /transfer-item` |
+| Payments | `/payments` | `POST /`, `DELETE /:id` |
+| Bills | `/bills` | `GET /`, `POST /`, `POST /:id/reopen`, `PATCH /:id/payment` |
+| Admin | `/admin` | `GET/PATCH /config`, CRUD for `/staff`, `/discounts`, `/void-reasons`, `PATCH /service-config` |
+| KDS | `/kds` | `GET /stations`, `GET /tickets/:stationKey`, `POST /bump-item`, `POST /bump-ticket` |
+| Menu | `/menu` | `GET /?daypart=` |
+| Floor | `/floor` | `GET /` (sections + tables) |
 
 ## Key Workflows
 
@@ -222,9 +300,21 @@ Static data in `src/data/menu.js`:
 
 `getServerInfo(serverId, servers)` — second arg defaults to static `SERVERS` for backwards compat; pass `adminConfig.servers` when calling from components.
 
-## Recently Completed (Feb 2026)
+## Recently Completed
 
-### Pain Point Improvements (Phase 1) — all done
+### Backend Integration (Phase 3, Apr 2026) — all done
+- **Express 5 + Prisma backend** — Full REST API with PostgreSQL. Multi-tenant via `Venue` model. All CRUD for tables, tabs, orders, payments, bills, admin config.
+- **PIN-based auth** — Staff tap name → enter PIN → JWT issued (short-lived access token + httpOnly refresh cookie). `AuthProvider` auto-refreshes on mount.
+- **usePOSActions hook** — Central integration layer. When `VITE_API_URL` is set, all actions call the API first then dispatch. Without it, dispatches directly (localStorage-only). Components use `actions.openTable()` instead of raw `dispatch`.
+- **BackendSync** — Invisible component hydrates local state from backend on login. Fetches open tables, tabs, closed bills, admin config. Resets on logout for fresh hydrate on re-login.
+- **Logout endpoint** — `POST /api/auth/logout` clears refresh token cookie. Sign-out in Header and New Day both call it.
+- **Split item backend sync** — Backend generates split copies; reducer accepts `backendCopies` to avoid local/backend ID mismatch.
+- **Service config sync** — `updateServiceConfig` now PATCHes to backend.
+- **KDS routes** — `/api/kds` with stations, tickets, bump-item, bump-ticket (ready for KDS UI).
+- **Deployment** — Vercel (frontend) + Railway (backend + PostgreSQL). Auto-seed on first startup.
+- **FloorView/ServerScreen cleanup** — Read from `adminConfig.servers` instead of hardcoded `SERVERS` import.
+
+### Pain Point Improvements (Phase 1, Feb 2026) — all done
 1. **COMP badge CSS** — `.item-badge` / `.item-badge.comp` added to `POS.css`
 2. **Timed quick-void** — Within 2 min of sending, "Quick Void" appears in `ItemActionsModal` (no reason needed). After 2 min, "Void (with reason)..." opens `VoidModal`. `VoidModal` now passes `reason` to `VOID_ITEM` dispatch.
 3. **Void tracking** — `VOID_ITEM` stores a `voidRecord` in `tableStates[id].voidedItems` / `tabStates[id].voidedItems`. `OPEN_TABLE` and `OPEN_TAB` initialize `voidedItems: []`. `REOPEN_BILL` restores `voidedItems`. `closeTableBill()` in `PaymentModal` includes `voidedItems` on the closed bill record.
@@ -232,7 +322,7 @@ Static data in `src/data/menu.js`:
 5. **ServerScreen reporting** — Shift stats now include Avg Check, Void count+total, Comp count. Closed bill cards show collapsible Voids section (`<details>`) with item name, reason, price.
 6. **Admin service times** — `serviceConfig` in POSContext state (auto-persisted). `getDaypartFromConfig(config)` in `calculations.js`. Hook called in `POS.jsx`. ⚙ button in Header nav → `view = 'admin'`.
 
-### Admin Panel + Bug Fixes (Phase 2) — all done
+### Admin Panel + Bug Fixes (Phase 2, Feb 2026) — all done
 - **Bug fix: daypart toggle flip-flop** — `useDaypart.js` used `daypart` as an effect dependency, causing the auto-check to immediately revert manual toggles. Fixed with `useRef` to track current daypart; interval effect only re-runs on `serviceConfig` change.
 - **Bug fix: payment wouldn't close bill** — `getTax` and `getSeatTotal` in `calculations.js` returned unrounded floats, causing `totalPaid >= total` to fail on certain amounts. Both now round to 2 decimal places with `Math.round(... * 100) / 100`.
 - **Add-on price breakdown** — `ModScreen` stores `basePrice` + `selectedAddOns: [{name, price}]` on each item. `OrderItem` and `ItemActionsModal` display the breakdown (base + each add-on + total) when add-ons are present.
@@ -242,12 +332,15 @@ Static data in `src/data/menu.js`:
 - **State robustness** — Provider initializer now does `{ ...initialState, ...stored, currentServer: null }` so new state keys always have defaults even against older saves (prevents blank server list on schema additions).
 
 ## Known Limitations / In-Progress Items
+- **KDS UI**: Backend routes ready (`/api/kds`), no frontend yet
 - **Print cheque**: Placeholder modals, not real receipt printing (needs backend print server)
 - **Gift card balance not on closed bill**: When a gift card is partially used, the remaining balance is correct in state but not printed on the closed bill receipt row
 - **Room charge PMS integration**: Room charge stores room number/guest name locally but does not POST to a PMS (OPERA, Mews, etc.) — see PaymentService abstraction hook point above
+- **transferTabToTable**: Not yet wired to backend API (dispatches locally only)
+- **updatePayment**: Not yet wired to backend API (posApi has `apiUpdateBillPayment` but usePOSActions doesn't call it)
 - **No training/demo mode**
-- **VoidModal "Other" text not captured**: When user selects "Other" void reason, the freetext input has no `value`/`onChange` binding — the reason is saved as the string `"Other"` not the custom text. Pre-existing issue.
-- **Admin PIN change**: No UI to change the PIN from within the admin panel yet (can be changed by editing `adminConfig.pin` via `UPDATE_ADMIN_CONFIG` dispatch).
+- **VoidModal "Other" text not captured**: When user selects "Other" void reason, the freetext input has no `value`/`onChange` binding — the reason is saved as the string `"Other"` not the custom text
+- **Admin PIN change**: No UI to change the PIN from within the admin panel yet
 - **config.js APP_MODE**: Still present but superseded by `adminConfig.mode`. Can be removed in a future cleanup.
 
 ## Deployment Mode

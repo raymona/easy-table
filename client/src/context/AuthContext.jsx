@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { api, setToken, clearToken, isBackendEnabled } from '../services/api';
+import { apiLogout } from '../services/posApi';
 
 const AuthContext = createContext(null);
 
@@ -43,7 +44,8 @@ export function AuthProvider({ children }) {
     return data.staff;
   }, []);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    try { await apiLogout(); } catch { /* best-effort cookie clear */ }
     clearToken();
     setStaff(null);
     setVenue(null);

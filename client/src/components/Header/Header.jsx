@@ -1,8 +1,9 @@
 import React from 'react';
-import { usePOS, useUI, POS_ACTIONS, getServerInfo } from '../../context';
+import { usePOS, useUI, POS_ACTIONS, getServerInfo, usePOSActions } from '../../context';
 
 export default function Header() {
   const { state, dispatch } = usePOS();
+  const actions = usePOSActions();
   const { daypart, currentServer, adminConfig } = state;
   const { view, setView, activeTable, setActiveTable, activeTab, setActiveTab, setShowServerScreen } = useUI();
 
@@ -50,7 +51,7 @@ export default function Header() {
           <span>{serverInfo.name}</span>
           <button
             className="sign-out"
-            onClick={(e) => { e.stopPropagation(); dispatch({ type: POS_ACTIONS.SIGN_OUT }); }}
+            onClick={(e) => { e.stopPropagation(); actions.signOut(); }}
           >×</button>
         </div>
       </div>

@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { TABLES, SERVERS, FLOOR_SECTIONS, FLOOR_SECTION_LABELS } from '../../data/menu';
+import { TABLES, FLOOR_SECTIONS, FLOOR_SECTION_LABELS } from '../../data/menu';
 import { usePOS, useUI, getServerInfo } from '../../context';
 import FloorTable from './FloorTable';
 
@@ -62,7 +62,7 @@ export default function FloorView() {
       <div className="floor-legend">
         <div className="legend-item"><span className="legend-dot empty"></span> Available</div>
         <div className="legend-item"><span className="legend-swatch dashed"></span> Partial Payment</div>
-        {SERVERS.map(s => (
+        {(adminConfig.servers || []).map(s => (
           <div key={s.id} className="legend-item">
             <span className="legend-dot" style={{ background: s.color }}></span> {s.name}
           </div>

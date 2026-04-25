@@ -1,8 +1,8 @@
 import { useCallback } from 'react';
 import { usePOS, POS_ACTIONS } from '../context';
 import { useAuth } from '../context/AuthContext';
-import { generateId } from '../utils/idGenerator';
 import * as posApi from '../services/posApi';
+import { backendItemToLocal } from '../services/posTransforms';
 
 /**
  * Central integration hook. Provides named action functions that:
@@ -13,7 +13,7 @@ import * as posApi from '../services/posApi';
  */
 export function usePOSActions() {
   const { state, dispatch } = usePOS();
-  const { backendEnabled } = useAuth();
+  const { backendEnabled, logout: authLogout } = useAuth();
 
   // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -35,9 +35,10 @@ export function usePOSActions() {
     dispatch({ type: POS_ACTIONS.SET_SERVER, serverId });
   }, [dispatch]);
 
-  const signOut = useCallback(() => {
+  const signOut = useCallback(async () => {
+    if (backendEnabled) await authLogout();
     dispatch({ type: POS_ACTIONS.SIGN_OUT });
-  }, [dispatch]);
+  }, [backendEnabled, authLogout, dispatch]);
 
   const setDaypart = useCallback((daypart) => {
     dispatch({ type: POS_ACTIONS.SET_DAYPART, daypart });
@@ -174,9 +175,8 @@ export function usePOSActions() {
     if (backendEnabled) {
       const backendId = getBackendItemId(itemId);
       const { copies } = await posApi.apiSplitItem(backendId, splitWays);
-      // Backend handles split — we need to refresh local state
-      // For now, dispatch locally and map the new IDs
-      dispatch({ type: POS_ACTIONS.SPLIT_ITEM, tableId, tabId, seatNum, itemId, splitWays });
+      const backendCopies = copies.map(c => backendItemToLocal(c));
+      dispatch({ type: POS_ACTIONS.SPLIT_ITEM, tableId, tabId, seatNum, itemId, splitWays, backendCopies });
     } else {
       dispatch({ type: POS_ACTIONS.SPLIT_ITEM, tableId, tabId, seatNum, itemId, splitWays });
     }
@@ -332,14 +332,21 @@ export function usePOSActions() {
   }, [backendEnabled, dispatch]);
 
   const updateServiceConfig = useCallback(async (serviceConfig) => {
+    if (backendEnabled) {
+      const configs = Object.entries(serviceConfig).map(([period, times]) => ({
+        period, start: times.start, end: times.end,
+      }));
+      await posApi.apiUpdateServiceConfig(configs);
+    }
     dispatch({ type: POS_ACTIONS.UPDATE_SERVICE_CONFIG, serviceConfig });
-  }, [dispatch]);
+  }, [backendEnabled, dispatch]);
 
   // ── Day Management ───────────────────────────────────────────────────────
 
-  const newDay = useCallback(() => {
+  const newDay = useCallback(async () => {
+    if (backendEnabled) await authLogout();
     dispatch({ type: POS_ACTIONS.NEW_DAY });
-  }, [dispatch]);
+  }, [backendEnabled, authLogout, dispatch]);
 
   return {
     // Server

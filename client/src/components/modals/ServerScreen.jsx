@@ -1,12 +1,11 @@
 import React from 'react';
-import { SERVERS } from '../../data/menu';
-import { usePOS, useUI, POS_ACTIONS } from '../../context';
+import { usePOS, useUI, getServerInfo } from '../../context';
 import { usePOSActions } from '../../hooks/usePOSActions';
 import { generateId } from '../../utils/idGenerator';
 
 export default function ServerScreen() {
-  const { state, dispatch } = usePOS();
-  const { closedBills, currentServer, tableStates } = state;
+  const { state } = usePOS();
+  const { closedBills, currentServer, tableStates, adminConfig } = state;
   const actions = usePOSActions();
   const {
     showServerScreen, setShowServerScreen,
@@ -61,12 +60,13 @@ export default function ServerScreen() {
 
   const handleNewDay = () => {
     if (window.confirm('Clear all shift data and start a new day? This cannot be undone.')) {
-      dispatch({ type: POS_ACTIONS.NEW_DAY });
+      actions.newDay();
       setShowServerScreen(false);
     }
   };
 
-  const serverName = SERVERS.find(s => s.id === currentServer)?.name;
+  const serverInfo = getServerInfo(currentServer, adminConfig.servers) || { name: '...', color: '#888' };
+  const serverName = serverInfo.name;
 
   return (
     <div className="modal-overlay">
