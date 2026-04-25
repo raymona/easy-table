@@ -6,7 +6,7 @@ export default function Header() {
   const { daypart, currentServer, adminConfig } = state;
   const { view, setView, activeTable, setActiveTable, activeTab, setActiveTab, setShowServerScreen } = useUI();
 
-  const serverInfo = getServerInfo(currentServer, adminConfig.servers);
+  const serverInfo = getServerInfo(currentServer, adminConfig.servers) || { name: '...', color: '#888' };
   const isTableView = activeTable !== null;
   const isTabView = activeTab !== null;
 
