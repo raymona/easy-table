@@ -44,6 +44,52 @@ router.patch('/config', authenticate, requireRole('admin', 'manager'), async (re
   }
 });
 
+// --- Staff Bulk Sync ---
+
+// PUT /api/admin/staff/sync — Replace staff list (deactivates removed, creates new, updates existing)
+router.put('/staff/sync', authenticate, requireRole('admin'), async (req, res, next) => {
+  try {
+    const { staff: staffList } = req.body;
+    const venueId = req.staff.venueId;
+
+    const existing = await prisma.staff.findMany({ where: { venueId } });
+    const existingIds = new Set(existing.map(s => s.id));
+    const incomingIds = new Set(
+      staffList.filter(s => typeof s.id === 'string' && s.id.length > 10).map(s => s.id)
+    );
+
+    // Deactivate staff no longer in list (can't delete due to FK constraints)
+    for (const ex of existing) {
+      if (ex.active && !incomingIds.has(ex.id)) {
+        await prisma.staff.update({ where: { id: ex.id }, data: { active: false } });
+      }
+    }
+
+    // Create or update each staff member
+    for (const s of staffList) {
+      if (typeof s.id === 'string' && existingIds.has(s.id)) {
+        await prisma.staff.update({
+          where: { id: s.id },
+          data: { name: s.name, color: s.color, role: s.role || 'server', active: true },
+        });
+      } else {
+        await prisma.staff.create({
+          data: { venueId, name: s.name, color: s.color || '#3B82F6', role: s.role || 'server' },
+        });
+      }
+    }
+
+    const updated = await prisma.staff.findMany({
+      where: { venueId, active: true },
+      select: { id: true, name: true, role: true, color: true, active: true },
+      orderBy: { name: 'asc' },
+    });
+    res.json({ staff: updated });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // --- Staff CRUD ---
 
 // GET /api/admin/staff
@@ -100,6 +146,29 @@ router.patch('/staff/:id', authenticate, requireRole('admin'), async (req, res, 
   }
 });
 
+// --- Discount Presets Bulk Sync ---
+
+// PUT /api/admin/discounts/sync — Replace all discount presets
+router.put('/discounts/sync', authenticate, requireRole('admin', 'manager'), async (req, res, next) => {
+  try {
+    const { presets } = req.body;
+    const venueId = req.staff.venueId;
+
+    await prisma.discountPreset.deleteMany({ where: { venueId } });
+
+    const created = [];
+    for (const p of presets) {
+      const d = await prisma.discountPreset.create({
+        data: { venueId, label: p.label, type: p.type, value: p.value },
+      });
+      created.push(d);
+    }
+    res.json({ discounts: created });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // --- Discount Presets ---
 
 // GET /api/admin/discounts
@@ -132,6 +201,29 @@ router.delete('/discounts/:id', authenticate, requireRole('admin', 'manager'), a
   try {
     await prisma.discountPreset.delete({ where: { id: req.params.id } });
     res.json({ deleted: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// --- Void Reasons Bulk Sync ---
+
+// PUT /api/admin/void-reasons/sync — Replace all void reasons
+router.put('/void-reasons/sync', authenticate, requireRole('admin', 'manager'), async (req, res, next) => {
+  try {
+    const { reasons } = req.body;
+    const venueId = req.staff.venueId;
+
+    await prisma.voidReason.deleteMany({ where: { venueId } });
+
+    const created = [];
+    for (const label of reasons) {
+      const r = await prisma.voidReason.create({
+        data: { venueId, label },
+      });
+      created.push(r);
+    }
+    res.json({ reasons: created });
   } catch (err) {
     next(err);
   }

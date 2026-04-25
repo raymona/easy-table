@@ -381,12 +381,50 @@ Future phases: Menu Editor, Floor Plan Editor, full reporting dashboard.
 - **Reducer tests** (`context/__tests__/`): Action → state assertions (no rendering)
 - **Component tests** (`components/**/__tests__/`): RTL render + user interaction
 
+## Competitive Positioning
+
+### Market Gap
+Clear gap between "simple but limited" (Square, Clover) and "powerful but complex/expensive/locked-in" (Toast, Lightspeed, MICROS). Easy Table targets the sweet spot. SkyTab ($30/mo, free hardware, no ETF) is the closest competitor.
+
+### Key Competitors
+- **Dominant**: Toast (~24% share, 140K locations), Square (~28% general)
+- **Strong in Canada**: Lightspeed (Montreal), TouchBistro (Toronto)
+- **Growing**: SkyTab/Shift4, SpotOn
+- **Enterprise/Hotel**: Oracle MICROS, Aloha/NCR, Silverware, Mews
+
+### Easy Table's Differentiators
+1. **Learnable in under 1 hour** vs industry standard 2-4 weeks training
+2. **Offline-by-default** — works without internet, syncs when connected
+3. **Low tap count** — void: 3 taps, transfer: 2 taps, split: seat-based from start
+4. **No contract / no hardware lock-in** — runs on any browser/tablet
+5. **Seat-based ordering built in** from day one (competitors bolt it on)
+
+### Industry Pain Points We Exploit
+1. Contract lock-in & predatory pricing (Toast 2-3yr, Revel ETFs up to $15K)
+2. Hardware lock-in (Toast proprietary devices)
+3. Clunky slow UIs requiring weeks of training
+4. Mandatory payment processors
+5. Abysmal customer support (universal complaint)
+
+### Critical Feature Gaps to Close
+1. **KDS** — backend routes ready, needs UI (market growing $487M → $1B by 2033)
+2. **Bar tab pre-auth** — non-negotiable for bar mode
+3. **Handheld/tableside ordering** — 72% of operators use
+4. **Reporting & analytics** — basic shift stats exist, need full dashboard
+5. **Multi-province tax** — HST, GST+PST, GST+QST, GST-only
+6. **Staff time clock** — ClockEvent model exists, no UI yet
+7. **Online ordering / delivery integration** — 40% of revenue industry-wide
+8. **Inventory management**
+
+### Canada-Specific Requirements
+- Interac debit (~60% of transactions, flat $0.04-$0.12/tx)
+- Multi-province tax compliance
+- Tip regulations (ON/BC ban employer deductions)
+- Moneris integration (Canada's leading processor, $29.99/mo)
+- Bilingual support (French required in Quebec)
+
 ## Payment Integration Roadmap
-See `PaymentService` abstraction planned in architecture. Recommended path:
+Recommended path:
 1. **Stripe Terminal** — best dev experience, works in Canada, strong docs
 2. **Node.js backend** — token exchange (browser never touches raw card data)
 3. **Moneris** — lower per-transaction fees at scale (~2.55% vs Stripe's 2.9%)
-
-Canada note: **Interac debit is ~60% of transactions** — all major processors support it.
-
-Competitive context: Lightspeed (strong in Canada) and Oracle MICROS Simphony (hotel standard) are the primary market comparables. Easy Table's advantages are simplicity, offline-by-default, and fast tab count for common operations (void: 3 taps, transfer: 2 taps, split cheque: seat-based from the start).

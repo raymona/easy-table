@@ -325,10 +325,28 @@ export function usePOSActions() {
   // ── Admin ────────────────────────────────────────────────────────────────
 
   const updateAdminConfig = useCallback(async (updates) => {
+    let resolvedUpdates = { ...updates };
     if (backendEnabled) {
-      await posApi.apiUpdateConfig(updates);
+      // Route relational data to dedicated sync endpoints
+      if (updates.servers) {
+        const { staff } = await posApi.apiSyncStaff(updates.servers);
+        resolvedUpdates.servers = staff.map(s => ({ id: s.id, name: s.name, color: s.color, role: s.role }));
+      }
+      if (updates.discountPresets) {
+        const { discounts } = await posApi.apiSyncDiscounts(updates.discountPresets);
+        resolvedUpdates.discountPresets = discounts.map(d => ({ id: d.id, label: d.label, type: d.type, value: d.value }));
+      }
+      if (updates.voidReasons) {
+        const { reasons } = await posApi.apiSyncVoidReasons(updates.voidReasons);
+        resolvedUpdates.voidReasons = reasons.map(r => r.label);
+      }
+      // Pass remaining venue-level fields to config endpoint
+      const { servers, discountPresets, voidReasons, ...venueFields } = updates;
+      if (Object.keys(venueFields).length > 0) {
+        await posApi.apiUpdateConfig(venueFields);
+      }
     }
-    dispatch({ type: POS_ACTIONS.UPDATE_ADMIN_CONFIG, updates });
+    dispatch({ type: POS_ACTIONS.UPDATE_ADMIN_CONFIG, updates: resolvedUpdates });
   }, [backendEnabled, dispatch]);
 
   const updateServiceConfig = useCallback(async (serviceConfig) => {

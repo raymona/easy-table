@@ -90,5 +90,14 @@ export const apiUpdateBillPayment = (billId, paymentId, method, amount) =>
 export const apiUpdateConfig = (updates) =>
   api.patch('/api/admin/config', updates);
 
+export const apiSyncStaff = (staff) =>
+  api.put('/api/admin/staff/sync', { staff });
+
+export const apiSyncDiscounts = (presets) =>
+  api.put('/api/admin/discounts/sync', { presets });
+
+export const apiSyncVoidReasons = (reasons) =>
+  api.put('/api/admin/void-reasons/sync', { reasons });
+
 export const apiUpdateServiceConfig = (configs) =>
   api.patch('/api/admin/service-config', { configs });
