@@ -11,6 +11,7 @@ router.get('/config', authenticate, async (req, res, next) => {
     const venue = await prisma.venue.findUnique({
       where: { id: req.staff.venueId },
       include: {
+        staff: { where: { active: true }, orderBy: { name: 'asc' } },
         discountPresets: true,
         voidReasons: true,
         serviceConfigs: true,
@@ -53,29 +54,38 @@ router.put('/staff/sync', authenticate, requireRole('admin'), async (req, res, n
     const venueId = req.staff.venueId;
 
     const existing = await prisma.staff.findMany({ where: { venueId } });
-    const existingIds = new Set(existing.map(s => s.id));
-    const incomingIds = new Set(
-      staffList.filter(s => typeof s.id === 'string' && s.id.length > 10).map(s => s.id)
-    );
+    const existingById = new Map(existing.map(s => [s.id, s]));
+    const existingByName = new Map(existing.map(s => [s.name.toLowerCase(), s]));
 
-    // Deactivate staff no longer in list (can't delete due to FK constraints)
-    for (const ex of existing) {
-      if (ex.active && !incomingIds.has(ex.id)) {
-        await prisma.staff.update({ where: { id: ex.id }, data: { active: false } });
-      }
-    }
+    const accountedIds = new Set();
 
-    // Create or update each staff member
+    // Create or update each incoming staff member
     for (const s of staffList) {
-      if (typeof s.id === 'string' && existingIds.has(s.id)) {
+      // Match by CUID first, fall back to name match (handles pre-hydration numeric IDs)
+      let match = null;
+      if (typeof s.id === 'string' && existingById.has(s.id)) {
+        match = existingById.get(s.id);
+      } else if (s.name) {
+        match = existingByName.get(s.name.toLowerCase());
+      }
+
+      if (match) {
+        accountedIds.add(match.id);
         await prisma.staff.update({
-          where: { id: s.id },
+          where: { id: match.id },
           data: { name: s.name, color: s.color, role: s.role || 'server', active: true },
         });
       } else {
         await prisma.staff.create({
           data: { venueId, name: s.name, color: s.color || '#3B82F6', role: s.role || 'server' },
         });
+      }
+    }
+
+    // Deactivate staff not accounted for (can't delete due to FK constraints)
+    for (const ex of existing) {
+      if (ex.active && !accountedIds.has(ex.id)) {
+        await prisma.staff.update({ where: { id: ex.id }, data: { active: false } });
       }
     }
 
