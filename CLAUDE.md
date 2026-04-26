@@ -46,11 +46,14 @@ client/src/
 │   ├── BackendSync.jsx      ← invisible; hydrates state from backend on login
 │   ├── SignIn/SignIn.jsx     ← PIN-based login (backend) or click-to-sign-in (local)
 │   ├── Header/Header.jsx
+│   ├── Toast.jsx             ← auto-dismiss toast notifications (success/error/warning)
 │   ├── FloorView/
+│   │   ├── FloorView.jsx     ← floor plan (layout) or list toggle
+│   │   └── FloorListView.jsx ← table list view (sorted: occupied by server, then available)
 │   ├── TabsView/TabsView.jsx
 │   ├── OrderView/
 │   ├── modals/              ← SeatPicker, Payment, Void, Split, Transfer, etc.
-│   └── admin/               ← PIN-gated admin panel (General, Staff, Discounts, VoidReasons)
+│   └── admin/               ← PIN-gated admin panel (General, Menu, Staff, Discounts, VoidReasons)
 ├── context/
 │   ├── POSContext.jsx       ← business data (useReducer), localStorage persistence
 │   ├── UIContext.jsx        ← UI/navigation state (useState)
@@ -60,7 +63,8 @@ client/src/
 │   ├── usePOSActions.js     ← central backend integration hook (see below)
 │   ├── useOrderTotals.js    ← subtotal, tax, total (discount-aware), seat totals
 │   ├── usePayments.js       ← paid amounts, remaining, paid seats
-│   └── useDaypart.js        ← auto-switching lunch/dinner
+│   ├── useDaypart.js        ← auto-switching lunch/dinner
+│   └── useInactivityTimeout.js ← auto sign-out after configurable idle period
 ├── services/
 │   ├── api.js               ← fetch wrapper, token management, auto-refresh on 401
 │   ├── posApi.js            ← thin async wrappers for all backend API endpoints
@@ -114,7 +118,9 @@ State shape:
     discountPresets: [{ label, type, value }],  // runtime-editable
     voidReasons: string[],                       // runtime-editable
     servers: [{ id, name, color }],              // runtime-editable
+    autoSignOutMinutes: 2,                        // 0 = disabled
   },
+  menu: [],  // array of { id, key, label, daypart, items[] } — from backend or static MENU
   // Backend integration — maps local IDs to backend CUIDs
   sessionMap: {},     // { [tableNumber]: backendSessionId }
   tabSessionMap: {},  // { [localTabId]: backendTabSessionId }
@@ -196,6 +202,7 @@ Staff PINs (seeded): Ray=1111, Nik=2222, Hannah=3333, Yaro=4444, Ashley=5555
 | `UPDATE_SERVICE_CONFIG` | Update lunch/dinner service time windows |
 | `UPDATE_ADMIN_CONFIG` | Partial-merge updates into `adminConfig` |
 | `NEW_DAY` | Clear localStorage + reset to initialState |
+| `SET_MENU` | Replace menu categories from backend sync |
 | `HYDRATE_FROM_BACKEND` | Bulk-replace state from backend API responses |
 | `SET_SESSION_ID` | Map tableNumber → backend session CUID |
 | `MAP_ITEM_ID` | Map local item ID → backend item CUID |
@@ -257,7 +264,7 @@ All routes prefixed with `/api`. Auth routes are public; all others require JWT 
 | Bills | `/bills` | `GET /`, `POST /`, `POST /:id/reopen`, `PATCH /:id/payment` |
 | Admin | `/admin` | `GET/PATCH /config`, CRUD for `/staff`, `/discounts`, `/void-reasons`, `PATCH /service-config` |
 | KDS | `/kds` | `GET /stations`, `GET /tickets/:stationKey`, `POST /bump-item`, `POST /bump-ticket` |
-| Menu | `/menu` | `GET /?daypart=` |
+| Menu | `/menu` | `GET /?daypart=`, `PUT /sync` (bulk menu upsert) |
 | Floor | `/floor` | `GET /` (sections + tables) |
 
 ## Key Workflows
@@ -301,6 +308,16 @@ Static data in `src/data/menu.js`:
 `getServerInfo(serverId, servers)` — second arg defaults to static `SERVERS` for backwards compat; pass `adminConfig.servers` when calling from components.
 
 ## Recently Completed
+
+### UX Polish + Menu Editor (Phase 4, Apr 2026) — all done
+- **Toast notifications** — `Toast.jsx` component + `showToast(message, type)` in UIContext. Auto-dismiss after 3s. Used in admin sections for save confirmations and error feedback.
+- **Floor list view** — `FloorListView.jsx` alternate view for FloorView. Shows tables as a sortable list (occupied grouped by server first, then available). Toggle between layout/list via `floorViewMode` in UIContext.
+- **Menu editor** — `MenuSection.jsx` in admin panel. Full CRUD for categories and items (name, price, mods toggle, cook temp toggle, add-ons). Syncs to backend via `PUT /api/menu/sync` (bulk upsert). Falls back to static MENU data if no backend menu exists. New `SET_MENU` reducer action + `syncMenu` in usePOSActions.
+- **Auto sign-out on inactivity** — `useInactivityTimeout` hook. Configurable via `adminConfig.autoSignOutMinutes` (default 2, 0=disabled). Watches pointer/key/scroll events. Configurable in Admin → General.
+- **Admin PIN modal keyboard support** — PIN entry now supports keyboard input (number keys + backspace).
+- **Staff PIN field in admin** — Staff section now includes PIN field for each server. PIN synced to backend on save.
+- **Staff sync fix** — Backend staff sync no longer wipes out existing users (soft-delete + reactivation via `reactivate-staff.js`).
+- **Venue mode exit fix** — AdminShell now exits to correct view (tabs for bar modes, floor for restaurant modes).
 
 ### Backend Integration (Phase 3, Apr 2026) — all done
 - **Express 5 + Prisma backend** — Full REST API with PostgreSQL. Multi-tenant via `Venue` model. All CRUD for tables, tabs, orders, payments, bills, admin config.
@@ -369,12 +386,13 @@ PIN-gated (default `1234`). Click ⚙ in the header → PIN screen → AdminShel
 
 | Section | What it does |
 |---------|-------------|
-| General | Venue mode, service times, tax rate, tip presets |
+| General | Venue mode, service times, tax rate, tip presets, auto sign-out timeout |
+| Menu | Full CRUD for menu categories and items (name, price, mods, cook temp, add-ons). Syncs to backend. |
 | Discounts | Add/edit/remove discount presets |
 | Void Reasons | Add/edit/remove void reason strings |
-| Staff | Add/edit/remove servers (name + color) |
+| Staff | Add/edit/remove servers (name, color, PIN) |
 
-Future phases: Menu Editor, Floor Plan Editor, full reporting dashboard.
+Future phases: Floor Plan Editor, full reporting dashboard.
 
 ## Testing Strategy
 - **Unit tests** (`utils/__tests__/`): Pure functions — fast, no DOM
