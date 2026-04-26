@@ -220,7 +220,7 @@ export const DISCOUNT_PRESETS = [
   { label: '$20 off', type: 'fixed', value: 20 },
 ];
 
-export const CARD_TYPES = ['Visa', 'Mastercard', 'Amex', 'Discover'];
+export const CARD_TYPES = ['Visa', 'Mastercard', 'Amex', 'Discover', 'Debit'];
 
 export const TIP_PRESETS = [15, 18, 20, 25];
 

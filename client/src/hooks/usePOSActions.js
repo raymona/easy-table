@@ -1,8 +1,10 @@
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { usePOS, POS_ACTIONS } from '../context';
 import { useAuth } from '../context/AuthContext';
 import * as posApi from '../services/posApi';
 import { backendItemToLocal } from '../services/posTransforms';
+import { generateKitchenTicketPDF } from '../services/printService';
+import { buildKitchenTicketData } from '../utils/printHelpers';
 
 /**
  * Central integration hook. Provides named action functions that:
@@ -14,6 +16,10 @@ import { backendItemToLocal } from '../services/posTransforms';
 export function usePOSActions() {
   const { state, dispatch } = usePOS();
   const { backendEnabled, logout: authLogout } = useAuth();
+
+  // Keep a ref to current state so callbacks can read it without re-creating
+  const stateRef = useRef(state);
+  stateRef.current = state;
 
   // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -147,20 +153,42 @@ export function usePOSActions() {
   }, [backendEnabled, dispatch, getBackendItemId]);
 
   const sendOrder = useCallback(async (tableId, tabId) => {
+    // Capture pre-dispatch state for ticket generation
+    const { tableStates, tabStates, adminConfig } = stateRef.current;
     if (backendEnabled) {
       const sessionId = tableId ? getSessionId(tableId) : getTabSessionId(tabId);
       const sessionType = tableId ? 'table' : 'tab';
       await posApi.apiSendOrder(sessionId, sessionType);
     }
     dispatch({ type: POS_ACTIONS.SEND_ORDER, tableId, tabId });
+    // Generate kitchen ticket for auto-fired items
+    try {
+      const ticketData = buildKitchenTicketData({ tableId, tabId, tableStates, tabStates, adminConfig });
+      if (ticketData.items.length > 0) {
+        generateKitchenTicketPDF(ticketData);
+      }
+    } catch (err) {
+      console.error('Kitchen ticket PDF failed:', err);
+    }
   }, [backendEnabled, dispatch, getSessionId, getTabSessionId]);
 
   const fireCourse = useCallback(async (tableId, course) => {
+    // Capture pre-dispatch state for ticket generation
+    const { tableStates, tabStates, adminConfig } = stateRef.current;
     if (backendEnabled) {
       const sessionId = getSessionId(tableId);
       await posApi.apiFireCourse(sessionId, 'table', course);
     }
     dispatch({ type: POS_ACTIONS.FIRE_COURSE, tableId, course });
+    // Generate kitchen ticket for the fired course
+    try {
+      const ticketData = buildKitchenTicketData({ tableId, tabId: null, tableStates, tabStates, adminConfig, course });
+      if (ticketData.items.length > 0) {
+        generateKitchenTicketPDF(ticketData);
+      }
+    } catch (err) {
+      console.error('Kitchen ticket PDF failed:', err);
+    }
   }, [backendEnabled, dispatch, getSessionId]);
 
   const moveItem = useCallback(async (tableId, itemId, fromSeat, toSeat) => {
@@ -226,6 +254,8 @@ export function usePOSActions() {
         roomNumber: payment.roomNumber || null,
         guestName: payment.guestName || null,
         giftCardCode: payment.giftCardCode || null,
+        processorRef: payment.processorRef || null,
+        cardLast4: payment.cardLast4 || null,
       });
     }
     dispatch({ type: POS_ACTIONS.PROCESS_TABLE_PAYMENT, tableId, payment, newSeatPayments, newPaidSeats });

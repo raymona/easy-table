@@ -7,6 +7,8 @@ import {
   getSubtotal, getTax, getSeatTotal, applyDiscount,
   getTablePaidAmount, getTableSeatPaidAmount, getTablePaidSeats,
 } from '../../utils/calculations';
+import PaymentTerminalModal from './PaymentTerminalModal';
+import { isCardPayment } from '../../services/paymentSimulator';
 
 export default function PaymentModal() {
   const { state } = usePOS();
@@ -32,6 +34,10 @@ export default function PaymentModal() {
   // ── Room charge local state ───────────────────────────────────────────────
   const [roomNumber, setRoomNumber] = useState('');
   const [guestName, setGuestName] = useState('');
+
+  // ── Terminal simulation state ─────────────────────────────────────────────
+  const [showTerminal, setShowTerminal] = useState(false);
+  const [terminalResult, setTerminalResult] = useState(null);
 
   if (!showPaymentModal) return null;
 
@@ -116,12 +122,39 @@ export default function PaymentModal() {
     setView('floor');
   };
 
-  const processPayment = async () => {
+  const initiatePayment = () => {
+    const amount = parseFloat(paymentAmount) || 0;
+    if (amount <= 0) return;
+
+    if (isCardPayment(selectedPaymentMethod)) {
+      setShowTerminal(true);
+    } else {
+      executePayment(null);
+    }
+  };
+
+  const handleTerminalComplete = (result) => {
+    setShowTerminal(false);
+    setTerminalResult(result);
+    executePayment(result);
+  };
+
+  const handleTerminalCancel = () => {
+    setShowTerminal(false);
+    setTerminalResult(null);
+    setSelectedPaymentMethod(null);
+  };
+
+  const executePayment = async (cardResult) => {
     const amount = parseFloat(paymentAmount) || 0;
     if (amount <= 0) return;
     const payment = {
       seat: selectedPaySeat, method: selectedPaymentMethod, amount, timestamp: Date.now(),
       ...(selectedPaymentMethod === 'room' && { roomNumber, guestName }),
+      ...(cardResult && {
+        processorRef: cardResult.authCode,
+        cardLast4: cardResult.cardLast4,
+      }),
     };
 
     if (selectedPaymentMethod === 'gift' && giftCardCode) {
@@ -373,7 +406,7 @@ export default function PaymentModal() {
               <button className="back-btn" onClick={() => { setSelectedPaymentMethod(null); resetRoomCharge(); }}>← Back</button>
               <button
                 className="confirm-btn"
-                onClick={processPayment}
+                onClick={initiatePayment}
                 disabled={!roomNumber.trim()}
               >Charge</button>
             </div>
@@ -419,9 +452,18 @@ export default function PaymentModal() {
             />
             <div className="payment-actions">
               <button className="back-btn" onClick={() => { setSelectedPaymentMethod(null); resetGiftCard(); resetRoomCharge(); }}>← Back</button>
-              <button className="confirm-btn" onClick={processPayment}>Pay</button>
+              <button className="confirm-btn" onClick={initiatePayment}>Pay</button>
             </div>
           </div>
+        )}
+
+        {showTerminal && (
+          <PaymentTerminalModal
+            method={selectedPaymentMethod}
+            amount={parseFloat(paymentAmount) || 0}
+            onComplete={handleTerminalComplete}
+            onCancel={handleTerminalCancel}
+          />
         )}
       </div>
     </div>

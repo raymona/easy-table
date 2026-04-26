@@ -3056,3 +3056,188 @@ body {
   from { transform: translateX(-50%) translateY(20px); opacity: 0; }
   to { transform: translateX(-50%) translateY(0); opacity: 1; }
 }
+
+/* ============ PAYMENT TERMINAL SIMULATION ============ */
+
+.terminal-overlay {
+  z-index: 400;
+}
+
+.terminal-modal {
+  background: #0a0a0a;
+  border: 2px solid #222;
+  border-radius: 16px;
+  padding: 28px 24px;
+  width: 340px;
+  text-align: center;
+  font-family: 'Courier New', Courier, monospace;
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
+}
+
+.terminal-screen {
+  background: #061206;
+  border: 1px solid #1a2e1a;
+  border-radius: 10px;
+  padding: 28px 20px;
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.terminal-amount {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #4ade80;
+  margin-bottom: 4px;
+  letter-spacing: 1px;
+}
+
+.terminal-method {
+  font-size: 0.85rem;
+  color: #6b7280;
+  margin-bottom: 20px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.terminal-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.terminal-message {
+  font-size: 1rem;
+  color: #a3e635;
+  line-height: 1.6;
+}
+
+/* Card icon pulse */
+.terminal-card-icon {
+  opacity: 0.9;
+}
+
+.terminal-pulse {
+  animation: terminal-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes terminal-pulse {
+  0%, 100% { opacity: 0.9; }
+  50% { opacity: 0.4; }
+}
+
+/* Reading dots */
+.terminal-dots {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+}
+
+.terminal-dots span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #4ade80;
+  animation: terminal-dot-bounce 1.2s ease-in-out infinite;
+}
+
+.terminal-dots span:nth-child(2) { animation-delay: 0.2s; }
+.terminal-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes terminal-dot-bounce {
+  0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
+  40% { opacity: 1; transform: scale(1.2); }
+}
+
+/* Spinner */
+.terminal-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #1a3a1a;
+  border-top: 3px solid #4ade80;
+  border-radius: 50%;
+  animation: terminal-spin 0.8s linear infinite;
+}
+
+@keyframes terminal-spin {
+  to { transform: rotate(360deg); }
+}
+
+.terminal-processing {
+  letter-spacing: 1px;
+}
+
+/* Approved */
+.terminal-checkmark {
+  font-size: 2.5rem;
+  color: #22c55e;
+  line-height: 1;
+}
+
+.terminal-approved-text {
+  color: #22c55e;
+  font-size: 1.3rem;
+  font-weight: bold;
+  letter-spacing: 2px;
+}
+
+/* Declined */
+.terminal-x-mark {
+  font-size: 2.5rem;
+  color: #ef4444;
+  line-height: 1;
+}
+
+.terminal-declined-text {
+  color: #ef4444;
+  font-size: 1.3rem;
+  font-weight: bold;
+  letter-spacing: 2px;
+}
+
+.terminal-auth {
+  color: #6b7280;
+  font-size: 0.8rem;
+  margin-top: 2px;
+}
+
+/* Terminal action buttons */
+.terminal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.terminal-retry-btn {
+  padding: 10px 24px;
+  background: #1a3a1a;
+  border: 1px solid #4ade80;
+  border-radius: var(--radius);
+  color: #4ade80;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.terminal-retry-btn:hover {
+  background: #224422;
+}
+
+.terminal-cancel-btn {
+  padding: 8px 16px;
+  background: transparent;
+  border: none;
+  color: #6b7280;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.terminal-cancel-btn:hover {
+  color: #9ca3af;
+}

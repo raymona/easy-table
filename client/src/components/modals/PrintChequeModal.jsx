@@ -1,14 +1,14 @@
 import React from 'react';
 import { usePOS, useUI } from '../../context';
-import { getSubtotal, getTax } from '../../utils/calculations';
-import { applyDiscount } from '../../utils/calculations';
+import { getSubtotal, getTax, applyDiscount } from '../../utils/calculations';
+import { generateGuestChequePDF } from '../../services/printService';
+import { buildGuestChequeData } from '../../utils/printHelpers';
 
 export default function PrintChequeModal() {
   const { state } = usePOS();
-  const { tableStates, tabStates } = state;
+  const { tableStates, tabStates, adminConfig } = state;
   const {
     showPrintChequeModal, setShowPrintChequeModal,
-    printConfirmMsg, setPrintConfirmMsg,
     activeTable, activeTab,
     appliedDiscount,
     setShowDiscountModal,
@@ -29,9 +29,23 @@ export default function PrintChequeModal() {
   const isTabView = activeTab !== null;
   const seatCount = Object.values(currentOrder).filter(items => Array.isArray(items) && items.length > 0).length;
 
-  const sendPrint = (msg) => {
-    setPrintConfirmMsg(msg);
-    setTimeout(() => { setPrintConfirmMsg(''); setShowPrintChequeModal(false); }, 1500);
+  const printCheque = (splitMode, splitCount = null) => {
+    try {
+      const data = buildGuestChequeData({
+        tableId: activeTable,
+        tabId: activeTab,
+        tableStates,
+        tabStates,
+        adminConfig,
+        appliedDiscount,
+        splitMode,
+        splitCount,
+      });
+      generateGuestChequePDF(data);
+    } catch (err) {
+      console.error('Guest cheque PDF failed:', err);
+    }
+    setShowPrintChequeModal(false);
   };
 
   return (
@@ -43,17 +57,12 @@ export default function PrintChequeModal() {
           <span>Total</span>
           <span className="big-total">${total.toFixed(2)}</span>
         </div>
-        {printConfirmMsg && (
-          <div style={{ padding: '8px 12px', background: 'var(--bg)', borderRadius: 'var(--radius)', color: 'var(--success)', marginBottom: 12 }}>
-            {printConfirmMsg}
-          </div>
-        )}
         <div className="bill-options">
-          <button onClick={() => sendPrint('Full cheque sent to printer.')}>Print Full Cheque</button>
+          <button onClick={() => printCheque('full')}>Print Full Cheque</button>
           {isTableView && seatCount > 1 && (
-            <button onClick={() => sendPrint('Split-by-seat cheques sent to printer.')}>Split by Seat</button>
+            <button onClick={() => printCheque('bySeat')}>Split by Seat</button>
           )}
-          <button onClick={() => sendPrint('Even-split cheques sent to printer.')}>Split Evenly</button>
+          <button onClick={() => printCheque('even', seatCount || 2)}>Split Evenly</button>
           <button onClick={() => setShowDiscountModal(true)}>Apply Discount</button>
           {isTabView && <button onClick={() => setShowTransferModal(true)}>Transfer to Table</button>}
         </div>
