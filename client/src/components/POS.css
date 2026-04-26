@@ -276,26 +276,21 @@ html, body {
 
 .floor-map {
   flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   position: relative;
   background: var(--bg-raised);
   border-radius: var(--radius);
   border: 1px solid var(--border);
   min-height: 300px;
   overflow: hidden;
-  --table-scale: 1;
 }
 .floor-map-inner {
   position: relative;
   width: 100%;
-  height: 100%;
-  transform: scale(var(--table-scale));
-  transform-origin: top left;
-}
-@media (min-width: 768px) {
-  .floor-map { --table-scale: 1.35; }
-}
-@media (min-width: 1024px) {
-  .floor-map { --table-scale: 1.5; }
+  max-height: 100%;
+  aspect-ratio: 19 / 16;
 }
 
 .floor-table {
@@ -310,26 +305,26 @@ html, body {
 }
 
 .floor-table.square {
-  width: 60px;
-  height: 60px;
+  width: 13%;
+  aspect-ratio: 1;
   border-radius: var(--radius);
 }
 
 .floor-table.round {
-  width: 70px;
-  height: 70px;
+  width: 14%;
+  aspect-ratio: 1;
   border-radius: 50%;
 }
 
 .floor-table.rectangle {
-  width: 100px;
-  height: 50px;
+  width: 20%;
+  aspect-ratio: 2 / 1;
   border-radius: var(--radius);
 }
 
 .floor-table.booth {
-  width: 80px;
-  height: 60px;
+  width: 16%;
+  aspect-ratio: 4 / 3;
   border-radius: var(--radius) var(--radius) 20px 20px;
 }
 

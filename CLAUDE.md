@@ -16,6 +16,7 @@ Designed to support three deployment modes (configured at runtime — no code ch
 - **Styling**: Plain CSS with custom properties (dark theme)
 - **Testing**: Vitest + @testing-library/react + jsdom
 - **Deployment**: Vercel (frontend) + Railway (backend + PostgreSQL)
+- **PDF**: jsPDF (client-side thermal receipt generation)
 - **No router yet** — single-page, view controlled via UI context
 
 ## Running the App
@@ -49,10 +50,17 @@ client/src/
 │   ├── Toast.jsx             ← auto-dismiss toast notifications (success/error/warning)
 │   ├── FloorView/
 │   │   ├── FloorView.jsx     ← floor plan (layout) or list toggle
+│   │   ├── FloorTable.jsx    ← individual table (percentage-based responsive positioning)
 │   │   └── FloorListView.jsx ← table list view (sorted: occupied by server, then available)
 │   ├── TabsView/TabsView.jsx
 │   ├── OrderView/
+│   ├── KDSView/
+│   │   ├── KDSView.jsx       ← kitchen display system (standalone page from admin)
+│   │   └── KDSTicket.jsx     ← individual ticket with elapsed time + urgency coloring
 │   ├── modals/              ← SeatPicker, Payment, Void, Split, Transfer, etc.
+│   │   ├── PaymentTerminalModal.jsx  ← card terminal simulation (insert→process→approve)
+│   │   ├── PreAuthCaptureModal.jsx   ← capture pre-authorized card on tab close
+│   │   └── NewTabModal.jsx           ← tab creation with optional card pre-auth
 │   └── admin/               ← PIN-gated admin panel (General, Menu, Staff, Discounts, VoidReasons)
 ├── context/
 │   ├── POSContext.jsx       ← business data (useReducer), localStorage persistence
@@ -68,11 +76,14 @@ client/src/
 ├── services/
 │   ├── api.js               ← fetch wrapper, token management, auto-refresh on 401
 │   ├── posApi.js            ← thin async wrappers for all backend API endpoints
-│   └── posTransforms.js     ← convert backend responses ↔ local state shapes
+│   ├── posTransforms.js     ← convert backend responses ↔ local state shapes
+│   ├── printService.js      ← jsPDF generation (kitchen tickets, guest cheques)
+│   └── paymentSimulator.js  ← async card terminal simulation (pre-auth, capture, payment)
 ├── utils/
 │   ├── calculations.js      ← pure math (TAX_RATE, getTotal, etc.)
 │   ├── orderHelpers.js      ← groupItemsByCourse, sortItemsByCourse
 │   ├── idGenerator.js       ← generateId()
+│   ├── printHelpers.js      ← data assembly for kitchen tickets + guest cheques
 │   └── __tests__/
 ├── data/
 │   └── menu.js              ← MENU, SERVERS, TABLES, TAX_RATE, constants (local-mode fallbacks)
@@ -102,7 +113,8 @@ State shape:
     [tableId]: { server, seats, orders: { [seatNum]: item[] }, voidedItems: [], openedAt }
   },
   tabStates: {
-    [tabId]: { name, server, items: item[], voidedItems: [], openedAt }
+    [tabId]: { name, server, items: item[], voidedItems: [], openedAt,
+               preAuthRef?, cardLast4?, cardBrand? }  // set when opened with card
   },
   tablePayments: {
     [tableId]: { payments: [], paidSeats: [], seatPayments: {} }
@@ -154,6 +166,7 @@ Components consume `usePOSActions()` for any action that should sync to the back
 Central hook in `hooks/usePOSActions.js`. Returns named action functions:
 - **Backend enabled** (`VITE_API_URL` set): calls API first, then dispatches with backend IDs
 - **Backend disabled**: dispatches directly (localStorage-only mode, no behavior change)
+- Uses `stateRef` pattern (`useRef(state)` updated each render) so callbacks can read current state without adding `state` to every `useCallback` dependency array. Used by `sendOrder`/`fireCourse` to capture pre-dispatch state for kitchen ticket generation.
 
 Components use `const actions = usePOSActions()` then `await actions.openTable(...)` instead of `dispatch({type: POS_ACTIONS.OPEN_TABLE, ...})`.
 
@@ -274,14 +287,24 @@ All routes prefixed with `/api`. Auth routes are public; all others require JWT 
 2. Order view opens → select seat, tap menu items
 3. Items needing mods open ModScreen (cook temp, add-ons, notes)
 4. "Send Order" fires Drinks/Apps immediately (`FIRED`), stages Mains/Dessert (`SENT`)
-5. "Fire Mains" / "Fire Dessert" buttons appear when staged items exist
+5. Kitchen ticket PDF auto-opens in new tab for fired items (via `printService.js`)
+6. "Fire Mains" / "Fire Dessert" buttons appear when staged items exist → fires another kitchen ticket
 
 ### Payment Flow
 1. Tap "Pay" → PaymentModal opens
 2. Option A: Pay full bill → select method → confirm
 3. Option B: Pay by seat → select seat → amount pre-filled → select method → confirm
-4. When all seats paid (or full bill paid), bill closes → moves to closedBills
-5. Tip = amount paid − bill total (if positive)
+4. **Card payments** → PaymentTerminalModal shows insert/tap animation → processing → approved/declined (~5% decline rate) → on approve, payment completes with `processorRef` + `cardLast4`
+5. **Pre-auth tabs** → "Charge Card on File" button → PreAuthCaptureModal → fast capture
+6. Cash/gift/room payments → process immediately (no terminal)
+7. When all seats paid (or full bill paid), bill closes → moves to closedBills
+8. Tip = amount paid − bill total (if positive)
+
+### Bar Tab Pre-Auth Flow
+1. Open tab → "Open with Card" button in NewTabModal
+2. Inline terminal simulation runs `simulatePreAuth` → returns `preAuthRef`, `cardLast4`, `cardBrand`
+3. Tab state stores pre-auth fields; TabsView shows card indicator (e.g. "Visa •••• 4242")
+4. On close → PreAuthCaptureModal runs `simulateCapture` with stored card info → payment completes
 
 ### Payment Integration Hook Points
 The reducer is the "confirmed" step — it only fires after the processor confirms:
@@ -308,6 +331,15 @@ Static data in `src/data/menu.js`:
 `getServerInfo(serverId, servers)` — second arg defaults to static `SERVERS` for backwards compat; pass `adminConfig.servers` when calling from components.
 
 ## Recently Completed
+
+### Demo Realism + KDS (Phase 5, Apr 2026) — all done
+- **KDS UI** — `KDSView.jsx` + `KDSTicket.jsx`. Standalone page launched from Admin panel. Displays tickets per station, elapsed time with urgency coloring (warning 5min, late 10min). Bump items individually or full tickets. Uses backend `/api/kds` routes.
+- **PDF kitchen tickets** — `printService.js` generates 80mm thermal-style PDFs via jsPDF. Auto-opens in new browser tab when orders fire. Items grouped by course with qty, seat, cookTemp, mods, addOns, allergies (`!! ALLERGY !!`), notes. Triggered from `usePOSActions` on `sendOrder` and `fireCourse` using `stateRef` pattern (captures pre-dispatch state via `useRef`).
+- **PDF guest cheques** — `PrintChequeModal.jsx` rewritten from stub. Three modes: full bill, split by seat (per-seat sub-totals), split evenly (per-person amount). Calls `buildGuestChequeData` → `generateGuestChequePDF`.
+- **Payment terminal simulation** — `paymentSimulator.js` + `PaymentTerminalModal.jsx`. Card payments show animated terminal: insert/tap → reading → processing → approved/declined (~5% decline). Returns `authCode`, `cardLast4`. Decline shows retry button. Cash/gift/room skip terminal.
+- **Bar tab pre-auth** — `simulatePreAuth` on tab open (via "Open with Card" in `NewTabModal`), `simulateCapture` on tab close (via `PreAuthCaptureModal`). `OPEN_TAB` reducer stores `preAuthRef/cardLast4/cardBrand`. `TabsView` shows card indicator. `posTransforms.js` hydrates pre-auth fields from backend.
+- **Debit card type** — Added to `CARD_TYPES` in `menu.js` and recognized by `isCardPayment()`.
+- **Floor plan responsive layout** — Removed CSS `transform: scale()` approach. FloorTable uses percentage-based positioning (`LAYOUT_W=380, LAYOUT_H=320`). `.floor-map-inner` locked to `aspect-ratio: 19/16` and centered in container. All tables visible on any screen size.
 
 ### UX Polish + Menu Editor (Phase 4, Apr 2026) — all done
 - **Toast notifications** — `Toast.jsx` component + `showToast(message, type)` in UIContext. Auto-dismiss after 3s. Used in admin sections for save confirmations and error feedback.
@@ -349,16 +381,14 @@ Static data in `src/data/menu.js`:
 - **State robustness** — Provider initializer now does `{ ...initialState, ...stored, currentServer: null }` so new state keys always have defaults even against older saves (prevents blank server list on schema additions).
 
 ## Known Limitations / In-Progress Items
-- **KDS UI**: Backend routes ready (`/api/kds`), no frontend yet
-- **Print cheque**: Placeholder modals, not real receipt printing (needs backend print server)
 - **Gift card balance not on closed bill**: When a gift card is partially used, the remaining balance is correct in state but not printed on the closed bill receipt row
 - **Room charge PMS integration**: Room charge stores room number/guest name locally but does not POST to a PMS (OPERA, Mews, etc.) — see PaymentService abstraction hook point above
 - **transferTabToTable**: Not yet wired to backend API (dispatches locally only)
 - **updatePayment**: Not yet wired to backend API (posApi has `apiUpdateBillPayment` but usePOSActions doesn't call it)
-- **No training/demo mode**
 - **VoidModal "Other" text not captured**: When user selects "Other" void reason, the freetext input has no `value`/`onChange` binding — the reason is saved as the string `"Other"` not the custom text
 - **Admin PIN change**: No UI to change the PIN from within the admin panel yet
 - **config.js APP_MODE**: Still present but superseded by `adminConfig.mode`. Can be removed in a future cleanup.
+- **Payment terminal is simulated**: `paymentSimulator.js` is a demo/test tool — swap for Stripe Terminal or Moneris SDK for production
 
 ## Deployment Mode
 
@@ -374,7 +404,7 @@ Venue mode is now set at runtime via **Admin → General → Venue Mode** (no co
 `src/config.js` (`APP_MODE`) is now legacy — no longer read by any component.
 
 ### Still to add for bar mode
-- Card pre-authorization flow (swipe to open tab, charge on close)
+- ~~Card pre-authorization flow~~ — done (Phase 5)
 - Reduced course/seat complexity in MenuPanel (optional)
 
 ### Still to add for hotel mode
@@ -425,8 +455,8 @@ Clear gap between "simple but limited" (Square, Clover) and "powerful but comple
 5. Abysmal customer support (universal complaint)
 
 ### Critical Feature Gaps to Close
-1. **KDS** — backend routes ready, needs UI (market growing $487M → $1B by 2033)
-2. **Bar tab pre-auth** — non-negotiable for bar mode
+1. ~~**KDS**~~ — done (Phase 5)
+2. ~~**Bar tab pre-auth**~~ — done (Phase 5)
 3. **Handheld/tableside ordering** — 72% of operators use
 4. **Reporting & analytics** — basic shift stats exist, need full dashboard
 5. **Multi-province tax** — HST, GST+PST, GST+QST, GST-only
