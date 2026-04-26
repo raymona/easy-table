@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useCallback } from 'react';
 
 // ─── Context ───────────────────────────────────────────────────────────────
 
@@ -103,6 +103,15 @@ export function UIProvider({ children }) {
   // Admin
   const [adminUnlocked, setAdminUnlocked] = useState(false);
 
+  // Toast
+  const [toast, setToast] = useState(null); // { message, type: 'success'|'error'|'warning' }
+  const showToast = useCallback((message, type = 'success') => {
+    setToast({ message, type });
+  }, []);
+
+  // Floor view mode
+  const [floorViewMode, setFloorViewMode] = useState('layout'); // 'layout' | 'list'
+
   const value = {
     // Navigation
     view, setView,
@@ -173,6 +182,10 @@ export function UIProvider({ children }) {
     showTransferModal, setShowTransferModal,
     // Admin
     adminUnlocked, setAdminUnlocked,
+    // Toast
+    toast, setToast, showToast,
+    // Floor view mode
+    floorViewMode, setFloorViewMode,
   };
 
   return <UIContext.Provider value={value}>{children}</UIContext.Provider>;

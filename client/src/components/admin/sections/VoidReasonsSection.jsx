@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { usePOS } from '../../../context';
+import { usePOS, useUI } from '../../../context';
 import { usePOSActions } from '../../../hooks/usePOSActions';
 
 export default function VoidReasonsSection() {
   const { state } = usePOS();
   const actions = usePOSActions();
+  const { showToast } = useUI();
+  const [saving, setSaving] = useState(false);
   const [reasons, setReasons] = useState([...state.adminConfig.voidReasons]);
 
   const updateReason = (idx, value) => {
@@ -20,7 +22,15 @@ export default function VoidReasonsSection() {
   };
 
   const save = async () => {
-    await actions.updateAdminConfig({ voidReasons: reasons.filter(r => r.trim()) });
+    setSaving(true);
+    try {
+      await actions.updateAdminConfig({ voidReasons: reasons.filter(r => r.trim()) });
+      showToast('Void reasons saved', 'success');
+    } catch (err) {
+      showToast(err.message || 'Save failed', 'error');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -45,7 +55,7 @@ export default function VoidReasonsSection() {
         style={{ marginTop: 8, marginBottom: 20, background: 'var(--bg-raised)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 6, padding: '8px 14px', cursor: 'pointer' }}
       >+ Add Reason</button>
       <div className="modal-actions">
-        <button className="confirm-btn" onClick={save}>Save</button>
+        <button className="confirm-btn" onClick={save} disabled={saving}>{saving ? 'Saving...' : 'Save'}</button>
       </div>
     </div>
   );

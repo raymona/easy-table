@@ -349,6 +349,15 @@ export function usePOSActions() {
     dispatch({ type: POS_ACTIONS.UPDATE_ADMIN_CONFIG, updates: resolvedUpdates });
   }, [backendEnabled, dispatch]);
 
+  const syncMenu = useCallback(async (categories) => {
+    if (backendEnabled) {
+      const { categories: saved } = await posApi.apiSyncMenu(categories);
+      dispatch({ type: POS_ACTIONS.SET_MENU, menu: saved });
+    } else {
+      dispatch({ type: POS_ACTIONS.SET_MENU, menu: categories });
+    }
+  }, [backendEnabled, dispatch]);
+
   const updateServiceConfig = useCallback(async (serviceConfig) => {
     if (backendEnabled) {
       const configs = Object.entries(serviceConfig).map(([period, times]) => ({
@@ -384,7 +393,7 @@ export function usePOSActions() {
     // Bills
     reopenBill, updatePayment,
     // Admin
-    updateAdminConfig, updateServiceConfig,
+    updateAdminConfig, updateServiceConfig, syncMenu,
     // Day
     newDay,
   };

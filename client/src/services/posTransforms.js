@@ -152,6 +152,43 @@ export function transformAdminConfig(venue) {
 }
 
 /**
+ * Transform backend menu categories (flat array) into the nested MENU format.
+ * Returns { lunch: { [key]: { label, items } }, dinner: { ... } }
+ */
+export function transformMenuToLocal(categories) {
+  const result = { lunch: {}, dinner: {} };
+  for (const cat of categories) {
+    const entry = {
+      label: cat.label,
+      items: (cat.items || []).map(item => ({
+        id: item.id,
+        menuItemId: item.id,
+        name: item.name,
+        price: item.price,
+        needsModScreen: item.needsModScreen ?? false,
+        hasCookTemp: item.hasCookTemp ?? false,
+        addOns: Array.isArray(item.addOns) ? item.addOns : [],
+      })),
+    };
+    if (cat.daypart === 'all' || cat.daypart === 'lunch') {
+      if (result.lunch[cat.key]) {
+        result.lunch[cat.key].items = [...result.lunch[cat.key].items, ...entry.items];
+      } else {
+        result.lunch[cat.key] = { ...entry };
+      }
+    }
+    if (cat.daypart === 'all' || cat.daypart === 'dinner') {
+      if (result.dinner[cat.key]) {
+        result.dinner[cat.key].items = [...result.dinner[cat.key].items, ...entry.items];
+      } else {
+        result.dinner[cat.key] = { ...entry };
+      }
+    }
+  }
+  return result;
+}
+
+/**
  * Transform backend service configs into local shape.
  */
 export function transformServiceConfig(configs) {

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { usePOS } from '../../../context';
+import { usePOS, useUI } from '../../../context';
 import { usePOSActions } from '../../../hooks/usePOSActions';
 
 const VENUE_MODES = [
@@ -12,7 +12,9 @@ const VENUE_MODES = [
 export default function GeneralSection() {
   const { state } = usePOS();
   const actions = usePOSActions();
+  const { showToast } = useUI();
   const { adminConfig, serviceConfig } = state;
+  const [saving, setSaving] = useState(false);
 
   const [localMode, setLocalMode] = useState(adminConfig.mode);
   const [localTaxRate, setLocalTaxRate] = useState(String(Math.round(adminConfig.taxRate * 100)));
@@ -30,14 +32,22 @@ export default function GeneralSection() {
   };
 
   const save = async () => {
-    const taxRate = Math.max(0, Math.min(100, parseFloat(localTaxRate) || 0)) / 100;
-    await actions.updateAdminConfig({
-      mode: localMode,
-      taxRate,
-      tipPresets: localTipPresets.map(v => parseInt(v) || 0),
-      autoSignOutMinutes: localAutoSignOut,
-    });
-    await actions.updateServiceConfig(localServiceConfig);
+    setSaving(true);
+    try {
+      const taxRate = Math.max(0, Math.min(100, parseFloat(localTaxRate) || 0)) / 100;
+      await actions.updateAdminConfig({
+        mode: localMode,
+        taxRate,
+        tipPresets: localTipPresets.map(v => parseInt(v) || 0),
+        autoSignOutMinutes: localAutoSignOut,
+      });
+      await actions.updateServiceConfig(localServiceConfig);
+      showToast('Settings saved', 'success');
+    } catch (err) {
+      showToast(err.message || 'Save failed', 'error');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -131,7 +141,7 @@ export default function GeneralSection() {
       </div>
 
       <div className="modal-actions" style={{ marginTop: 8 }}>
-        <button className="confirm-btn" onClick={save}>Save</button>
+        <button className="confirm-btn" onClick={save} disabled={saving}>{saving ? 'Saving...' : 'Save'}</button>
       </div>
     </div>
   );

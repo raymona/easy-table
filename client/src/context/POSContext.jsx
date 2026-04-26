@@ -75,6 +75,9 @@ export const POS_ACTIONS = {
   UPDATE_SERVICE_CONFIG: 'UPDATE_SERVICE_CONFIG',
   UPDATE_ADMIN_CONFIG: 'UPDATE_ADMIN_CONFIG',
 
+  // Menu
+  SET_MENU: 'SET_MENU',
+
   // Backend integration
   HYDRATE_FROM_BACKEND: 'HYDRATE_FROM_BACKEND',
   SET_SESSION_ID: 'SET_SESSION_ID',
@@ -127,6 +130,8 @@ const initialState = {
     ],
     autoSignOutMinutes: 2,  // 0 = disabled
   },
+  // Menu — null means use static MENU; array of categories when loaded from backend/editor
+  menu: null,
   // Backend integration — maps local IDs to backend CUIDs
   sessionMap: {},     // { [tableNumber]: backendSessionId }
   tabSessionMap: {},  // { [localTabId]: backendTabSessionId }
@@ -725,10 +730,14 @@ function posReducer(state, action) {
       return { ...state, adminConfig: { ...state.adminConfig, ...action.updates } };
     }
 
+    case POS_ACTIONS.SET_MENU: {
+      return { ...state, menu: action.menu };
+    }
+
     // ── Backend Integration ───────────────────────────────────────────────
     case POS_ACTIONS.HYDRATE_FROM_BACKEND: {
       const { tableStates, tabStates, tablePayments, closedBills,
-              sessionMap, tabSessionMap, itemIdMap, adminConfig, serviceConfig } = action.payload;
+              sessionMap, tabSessionMap, itemIdMap, adminConfig, serviceConfig, menu } = action.payload;
       return {
         ...state,
         tableStates: tableStates ?? state.tableStates,
@@ -740,6 +749,7 @@ function posReducer(state, action) {
         itemIdMap: { ...state.itemIdMap, ...(itemIdMap ?? {}) },
         adminConfig: adminConfig ?? state.adminConfig,
         serviceConfig: serviceConfig ?? state.serviceConfig,
+        menu: menu ?? state.menu,
       };
     }
 

@@ -3,13 +3,14 @@ import { MENU, COURSES } from '../../../data/menu';
 import { usePOS, useUI } from '../../../context';
 import { usePOSActions } from '../../../hooks/usePOSActions';
 import { generateId } from '../../../utils/idGenerator';
+import { transformMenuToLocal } from '../../../services/posTransforms';
 import MenuItem from './MenuItem';
 
 const STATUS_NEW = 'new';
 
 export default function MenuPanel() {
   const { state } = usePOS();
-  const { tableStates, tabStates, daypart } = state;
+  const { tableStates, tabStates, daypart, menu: menuData } = state;
   const actions = usePOSActions();
   const {
     activeTable, activeTab,
@@ -33,7 +34,13 @@ export default function MenuPanel() {
   // Follow global daypart switches (e.g. auto-switch at 5 PM)
   useEffect(() => { setMenuDaypart(daypart); }, [daypart]);
 
-  const menu = useMemo(() => MENU[menuDaypart], [menuDaypart]);
+  const menu = useMemo(() => {
+    if (menuData) {
+      const transformed = transformMenuToLocal(menuData);
+      return transformed[menuDaypart] || {};
+    }
+    return MENU[menuDaypart];
+  }, [menuData, menuDaypart]);
   const categories = useMemo(() => Object.keys(menu), [menu]);
 
   const isTableView = activeTable !== null;

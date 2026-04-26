@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { usePOS, useUI } from '../context';
 import { useDaypart } from '../hooks/useDaypart';
 import { useInactivityTimeout } from '../hooks/useInactivityTimeout';
 import './POS.css';
 
+import Toast from './Toast';
 import SignIn from './SignIn/SignIn';
 import Header from './Header/Header';
 import FloorView from './FloorView/FloorView';
@@ -32,10 +33,17 @@ import ServerScreen from './modals/ServerScreen';
 export default function POS() {
   const { state } = usePOS();
   const { currentServer } = state;
-  const { view, activeTable, activeTab, adminUnlocked } = useUI();
+  const { view, setView, activeTable, activeTab, adminUnlocked } = useUI();
 
   useDaypart(); // auto-switch daypart based on serviceConfig
   useInactivityTimeout(); // auto-sign-out after inactivity
+
+  // Reactive view switch when venue mode changes
+  useEffect(() => {
+    const mode = state.adminConfig?.mode;
+    const isBarMode = mode === 'bar' || mode === 'bar-hotel';
+    if (isBarMode && view === 'floor') setView('tabs');
+  }, [state.adminConfig?.mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!currentServer) return <SignIn />;
 
@@ -71,6 +79,7 @@ export default function POS() {
       <ReopenTablePicker />
       <EditPaymentModal />
       <ServerScreen />
+      <Toast />
     </div>
   );
 }

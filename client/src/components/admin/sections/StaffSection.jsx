@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { usePOS } from '../../../context';
+import { usePOS, useUI } from '../../../context';
 import { usePOSActions } from '../../../hooks/usePOSActions';
 
 export default function StaffSection() {
   const { state } = usePOS();
   const actions = usePOSActions();
+  const { showToast } = useUI();
+  const [saving, setSaving] = useState(false);
   const [servers, setServers] = useState(
     JSON.parse(JSON.stringify(state.adminConfig.servers))
   );
@@ -22,7 +24,15 @@ export default function StaffSection() {
   };
 
   const save = async () => {
-    await actions.updateAdminConfig({ servers });
+    setSaving(true);
+    try {
+      await actions.updateAdminConfig({ servers });
+      showToast('Staff saved', 'success');
+    } catch (err) {
+      showToast(err.message || 'Save failed', 'error');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -62,7 +72,7 @@ export default function StaffSection() {
         style={{ marginTop: 8, marginBottom: 20, background: 'var(--bg-raised)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 6, padding: '8px 14px', cursor: 'pointer' }}
       >+ Add Staff</button>
       <div className="modal-actions">
-        <button className="confirm-btn" onClick={save}>Save</button>
+        <button className="confirm-btn" onClick={save} disabled={saving}>{saving ? 'Saving...' : 'Save'}</button>
       </div>
     </div>
   );

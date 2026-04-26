@@ -101,3 +101,8 @@ export const apiSyncVoidReasons = (reasons) =>
 
 export const apiUpdateServiceConfig = (configs) =>
   api.patch('/api/admin/service-config', { configs });
+
+// ── Menu ─────────────────────────────────────────────────────────────────────
+
+export const apiSyncMenu = (categories) =>
+  api.put('/api/menu/sync', { categories });

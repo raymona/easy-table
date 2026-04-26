@@ -29,11 +29,12 @@ export default function BackendSync() {
 
     async function hydrate() {
       try {
-        const [tablesData, tabsData, billsData, configData] = await Promise.all([
+        const [tablesData, tabsData, billsData, configData, menuData] = await Promise.all([
           posApi.fetchOpenTables(),
           posApi.fetchOpenTabs(),
           posApi.fetchClosedBills(),
           posApi.fetchAdminConfig(),
+          posApi.fetchMenu(),
         ]);
 
         const { tableStates, tablePayments, sessionMap, itemIdMap } =
@@ -60,6 +61,7 @@ export default function BackendSync() {
             itemIdMap: { ...itemIdMap, ...tabItemIdMap },
             adminConfig,
             serviceConfig,
+            menu: menuData.categories?.length ? menuData.categories : null,
           },
         });
       } catch (err) {

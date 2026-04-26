@@ -2,12 +2,14 @@ import React, { useMemo } from 'react';
 import { TABLES, FLOOR_SECTIONS, FLOOR_SECTION_LABELS } from '../../data/menu';
 import { usePOS, useUI, getServerInfo } from '../../context';
 import FloorTable from './FloorTable';
+import FloorListView from './FloorListView';
 
 export default function FloorView() {
   const { state } = usePOS();
   const { tableStates, tablePayments, currentServer, adminConfig } = state;
   const {
     floorSection, setFloorSection,
+    floorViewMode, setFloorViewMode,
     setActiveTable, setActiveTab, setActiveSeat,
     setPendingTableId, setSeatCount, setShowSeatPicker,
   } = useUI();
@@ -40,25 +42,43 @@ export default function FloorView() {
             onClick={() => setFloorSection(section)}
           >{FLOOR_SECTION_LABELS[section]}</button>
         ))}
+        <button
+          className={`floor-view-toggle ${floorViewMode === 'list' ? 'active' : ''}`}
+          onClick={() => setFloorViewMode(floorViewMode === 'layout' ? 'list' : 'layout')}
+          title={floorViewMode === 'layout' ? 'Switch to list view' : 'Switch to layout view'}
+        >{floorViewMode === 'layout' ? 'List' : 'Layout'}</button>
       </div>
-      <div className="floor-map">
-        {sectionTables.map(table => {
-          const tState = tableStates[table.id];
-          const tableServer = tState ? getServerInfo(tState.server, adminConfig.servers) : null;
-          const isPartiallyPaid = (tablePayments[table.id]?.payments || []).length > 0;
-          return (
-            <FloorTable
-              key={table.id}
-              table={table}
-              tState={tState}
-              tableServer={tableServer}
-              isPartiallyPaid={isPartiallyPaid}
-              currentServer={currentServer}
-              onOpen={() => openTable(table.id)}
-            />
-          );
-        })}
-      </div>
+      {floorViewMode === 'list' ? (
+        <FloorListView
+          tables={sectionTables}
+          tableStates={tableStates}
+          tablePayments={tablePayments}
+          currentServer={currentServer}
+          adminConfig={adminConfig}
+          onOpenTable={openTable}
+        />
+      ) : (
+        <div className="floor-map">
+          <div className="floor-map-inner">
+            {sectionTables.map(table => {
+              const tState = tableStates[table.id];
+              const tableServer = tState ? getServerInfo(tState.server, adminConfig.servers) : null;
+              const isPartiallyPaid = (tablePayments[table.id]?.payments || []).length > 0;
+              return (
+                <FloorTable
+                  key={table.id}
+                  table={table}
+                  tState={tState}
+                  tableServer={tableServer}
+                  isPartiallyPaid={isPartiallyPaid}
+                  currentServer={currentServer}
+                  onOpen={() => openTable(table.id)}
+                />
+              );
+            })}
+          </div>
+        </div>
+      )}
       <div className="floor-legend">
         <div className="legend-item"><span className="legend-dot empty"></span> Available</div>
         <div className="legend-item"><span className="legend-swatch dashed"></span> Partial Payment</div>
