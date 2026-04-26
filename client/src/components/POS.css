@@ -21,7 +21,11 @@
   box-sizing: border-box;
 }
 
-body {
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  height: 100%;
   color: var(--text);
 }
 
@@ -31,6 +35,7 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  overflow: hidden;
   background: var(--bg);
   color: var(--text);
 }
@@ -233,10 +238,12 @@ body {
 /* ============ FLOOR VIEW ============ */
 
 .floor-view {
-  height: 100%;
+  flex: 1;
   display: flex;
   flex-direction: column;
   padding: 20px;
+  overflow: hidden;
+  min-height: 0;
 }
 
 .floor-section-tabs {
@@ -274,7 +281,7 @@ body {
   border-radius: var(--radius);
   border: 1px solid var(--border);
   min-height: 300px;
-  overflow: auto;
+  overflow: hidden;
   --table-scale: 1;
 }
 .floor-map-inner {
