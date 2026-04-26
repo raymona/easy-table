@@ -119,6 +119,7 @@ export function transformTabsToState(tabs) {
       items,
       voidedItems: [],
       openedAt: new Date(tab.openedAt).getTime(),
+      ...(tab.preAuthRef && { preAuthRef: tab.preAuthRef, cardLast4: tab.cardLast4 }),
     };
   }
 

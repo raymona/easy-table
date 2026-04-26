@@ -88,3 +88,103 @@ export async function simulateCardPayment(method, amount, onStageChange) {
 
   return result;
 }
+
+/**
+ * Simulate a card pre-authorization (hold, not charge).
+ * Used when opening a bar tab with a card on file.
+ *
+ * @param {(stage: Object) => void} onStageChange
+ * @returns {Promise<{approved: boolean, preAuthRef: string|null, cardLast4: string, cardBrand: string, message: string}>}
+ */
+export async function simulatePreAuth(onStageChange) {
+  const cardLast4 = generateLast4();
+  const brands = ['Visa', 'Mastercard', 'Amex'];
+  const cardBrand = brands[Math.floor(Math.random() * brands.length)];
+
+  // Stage 1: Insert / Tap / Swipe
+  onStageChange({
+    stage: 'insert',
+    message: 'Insert / Tap / Swipe Card',
+    cardLast4: null,
+  });
+  await delay(1200 + Math.random() * 800);
+
+  // Stage 2: Reading card
+  onStageChange({
+    stage: 'reading',
+    message: `Reading ${cardBrand} •••• ${cardLast4}`,
+    cardLast4,
+    cardBrand,
+  });
+  await delay(600 + Math.random() * 400);
+
+  // Stage 3: Authorizing hold
+  onStageChange({
+    stage: 'processing',
+    message: 'Authorizing Hold',
+    cardLast4,
+    cardBrand,
+  });
+  await delay(800 + Math.random() * 1000);
+
+  // ~3% decline rate for pre-auths
+  const declined = Math.random() < 0.03;
+
+  if (declined) {
+    const result = {
+      approved: false,
+      preAuthRef: null,
+      cardLast4,
+      cardBrand,
+      message: 'DECLINED',
+    };
+    onStageChange({ stage: 'declined', ...result });
+    return result;
+  }
+
+  const preAuthRef = 'PA-' + generateAuthCode();
+  const result = {
+    approved: true,
+    preAuthRef,
+    cardLast4,
+    cardBrand,
+    message: 'CARD AUTHORIZED',
+  };
+  onStageChange({ stage: 'authorized', ...result });
+  await delay(1000);
+
+  return result;
+}
+
+/**
+ * Simulate capturing a pre-authorized hold (completing the charge on tab close).
+ * Faster than a full payment since the card is already on file.
+ *
+ * @param {string} preAuthRef
+ * @param {string} cardLast4
+ * @param {string} cardBrand
+ * @param {number} amount
+ * @param {(stage: Object) => void} onStageChange
+ * @returns {Promise<{approved: boolean, authCode: string|null, message: string}>}
+ */
+export async function simulateCapture(preAuthRef, cardLast4, cardBrand, amount, onStageChange) {
+  onStageChange({
+    stage: 'processing',
+    message: `Capturing ${cardBrand} •••• ${cardLast4}`,
+    amount,
+  });
+  await delay(800 + Math.random() * 600);
+
+  // Captures almost never fail (card already authorized)
+  const authCode = generateAuthCode();
+  const result = {
+    approved: true,
+    authCode,
+    cardLast4,
+    message: 'CAPTURED',
+  };
+  onStageChange({ stage: 'approved', ...result, amount, cardBrand });
+  await delay(1000);
+
+  return result;
+}

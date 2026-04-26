@@ -228,14 +228,13 @@ export function usePOSActions() {
 
   // ── Tabs ─────────────────────────────────────────────────────────────────
 
-  const openTab = useCallback(async (tabId, name, server) => {
+  const openTab = useCallback(async (tabId, name, server, { preAuthRef, cardLast4, cardBrand } = {}) => {
     if (backendEnabled) {
-      const { tab } = await posApi.apiOpenTab(name);
-      // Use backend CUID as the tab ID
-      dispatch({ type: POS_ACTIONS.OPEN_TAB, tabId: tab.id, name, server });
-      return tab.id; // caller needs this for setActiveTab
+      const { tab } = await posApi.apiOpenTab(name, preAuthRef || null, cardLast4 || null);
+      dispatch({ type: POS_ACTIONS.OPEN_TAB, tabId: tab.id, name, server, preAuthRef, cardLast4, cardBrand });
+      return tab.id;
     } else {
-      dispatch({ type: POS_ACTIONS.OPEN_TAB, tabId, name, server });
+      dispatch({ type: POS_ACTIONS.OPEN_TAB, tabId, name, server, preAuthRef, cardLast4, cardBrand });
       return tabId;
     }
   }, [backendEnabled, dispatch]);

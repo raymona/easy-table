@@ -8,6 +8,7 @@ import {
   getTablePaidAmount, getTableSeatPaidAmount, getTablePaidSeats,
 } from '../../utils/calculations';
 import PaymentTerminalModal from './PaymentTerminalModal';
+import PreAuthCaptureModal from './PreAuthCaptureModal';
 import { isCardPayment } from '../../services/paymentSimulator';
 
 export default function PaymentModal() {
@@ -38,11 +39,16 @@ export default function PaymentModal() {
   // ── Terminal simulation state ─────────────────────────────────────────────
   const [showTerminal, setShowTerminal] = useState(false);
   const [terminalResult, setTerminalResult] = useState(null);
+  const [showCapture, setShowCapture] = useState(false);
 
   if (!showPaymentModal) return null;
 
   const isTableView = activeTable !== null;
   const isTabView = activeTab !== null;
+
+  // Pre-auth tab detection
+  const tabData = isTabView ? tabStates[activeTab] : null;
+  const hasPreAuth = tabData?.preAuthRef != null;
 
   // ── Totals ────────────────────────────────────────────────────────────────
   const currentOrder = isTableView
@@ -143,6 +149,25 @@ export default function PaymentModal() {
     setShowTerminal(false);
     setTerminalResult(null);
     setSelectedPaymentMethod(null);
+  };
+
+  // Pre-auth capture: charge the card already on file
+  const initiateCapture = () => {
+    setPaymentAmount(total.toFixed(2));
+    setSelectedPaymentMethod(tabData.cardBrand || 'Visa');
+    setShowCapture(true);
+  };
+
+  const handleCaptureComplete = (result) => {
+    setShowCapture(false);
+    executePayment({
+      authCode: result.authCode,
+      cardLast4: tabData.cardLast4,
+    });
+  };
+
+  const handleCaptureCancel = () => {
+    setShowCapture(false);
   };
 
   const executePayment = async (cardResult) => {
@@ -355,6 +380,14 @@ export default function PaymentModal() {
                 </>
               )}
             </div>
+            {hasPreAuth && (
+              <div className="preauth-capture-section">
+                <button className="capture-card-btn" onClick={initiateCapture}>
+                  Charge {tabData.cardBrand || 'Card'} •••• {tabData.cardLast4} — ${total.toFixed(2)}
+                </button>
+                <div className="divider-text">or pay another way</div>
+              </div>
+            )}
             <div className="payment-methods">
               <h3>Select Payment Method</h3>
               <div className="method-buttons">
@@ -463,6 +496,17 @@ export default function PaymentModal() {
             amount={parseFloat(paymentAmount) || 0}
             onComplete={handleTerminalComplete}
             onCancel={handleTerminalCancel}
+          />
+        )}
+
+        {showCapture && hasPreAuth && (
+          <PreAuthCaptureModal
+            preAuthRef={tabData.preAuthRef}
+            cardLast4={tabData.cardLast4}
+            cardBrand={tabData.cardBrand || 'Card'}
+            amount={total}
+            onComplete={handleCaptureComplete}
+            onCancel={handleCaptureCancel}
           />
         )}
       </div>

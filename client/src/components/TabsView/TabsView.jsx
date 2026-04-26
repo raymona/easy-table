@@ -19,10 +19,15 @@ export default function TabsView() {
         {myTabs.map(([tabId, tab]) => (
           <div
             key={tabId}
-            className="tab-card"
+            className={`tab-card ${tab.preAuthRef ? 'tab-card-preauth' : ''}`}
             onClick={() => { setActiveTab(tabId); setActiveTable(null); }}
           >
             <span className="tab-name">{tab.name}</span>
+            {tab.cardLast4 && (
+              <span className="tab-card-indicator">
+                {tab.cardBrand || 'Card'} •••• {tab.cardLast4}
+              </span>
+            )}
             <span className="tab-items">{tab.items.length} items</span>
             <span className="tab-total">${getOrderTotal(tab.items).toFixed(2)}</span>
           </div>

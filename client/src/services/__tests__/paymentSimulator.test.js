@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { isCardPayment, simulateCardPayment } from '../paymentSimulator';
+import { isCardPayment, simulateCardPayment, simulatePreAuth, simulateCapture } from '../paymentSimulator';
 
 // ─── isCardPayment ──────────────────────────────────────────────────────────
 
@@ -116,6 +116,81 @@ describe('simulateCardPayment', () => {
 
     expect(stages[0].method).toBe('Amex');
     expect(stages[0].amount).toBe(75.00);
+
+    Math.random.mockRestore();
+  });
+});
+
+// ─── simulatePreAuth ────────────────────────────────────────────────────────
+
+describe('simulatePreAuth', () => {
+  beforeEach(() => { vi.useFakeTimers(); });
+  afterEach(() => { vi.useRealTimers(); });
+
+  it('returns preAuthRef and cardLast4 on approval', async () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+
+    const onStageChange = vi.fn();
+    const promise = simulatePreAuth(onStageChange);
+    await vi.advanceTimersByTimeAsync(10000);
+
+    const result = await promise;
+    expect(result.approved).toBe(true);
+    expect(result.preAuthRef).toMatch(/^PA-\d{6}$/);
+    expect(result.cardLast4).toMatch(/^\d{4}$/);
+    expect(result.cardBrand).toBeDefined();
+    expect(result.message).toBe('CARD AUTHORIZED');
+
+    Math.random.mockRestore();
+  });
+
+  it('goes through insert, reading, processing, authorized stages', async () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+
+    const stages = [];
+    const onStageChange = (s) => stages.push(s.stage);
+    const promise = simulatePreAuth(onStageChange);
+    await vi.advanceTimersByTimeAsync(10000);
+    await promise;
+
+    expect(stages).toEqual(['insert', 'reading', 'processing', 'authorized']);
+
+    Math.random.mockRestore();
+  });
+});
+
+// ─── simulateCapture ────────────────────────────────────────────────────────
+
+describe('simulateCapture', () => {
+  beforeEach(() => { vi.useFakeTimers(); });
+  afterEach(() => { vi.useRealTimers(); });
+
+  it('returns approved with authCode', async () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+
+    const onStageChange = vi.fn();
+    const promise = simulateCapture('PA-123456', '4242', 'Visa', 50.00, onStageChange);
+    await vi.advanceTimersByTimeAsync(10000);
+
+    const result = await promise;
+    expect(result.approved).toBe(true);
+    expect(result.authCode).toMatch(/^\d{6}$/);
+    expect(result.cardLast4).toBe('4242');
+    expect(result.message).toBe('CAPTURED');
+
+    Math.random.mockRestore();
+  });
+
+  it('goes through processing then approved', async () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+
+    const stages = [];
+    const onStageChange = (s) => stages.push(s.stage);
+    const promise = simulateCapture('PA-123456', '4242', 'Visa', 50.00, onStageChange);
+    await vi.advanceTimersByTimeAsync(10000);
+    await promise;
+
+    expect(stages).toEqual(['processing', 'approved']);
 
     Math.random.mockRestore();
   });

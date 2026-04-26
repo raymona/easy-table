@@ -456,12 +456,15 @@ function posReducer(state, action) {
 
     // ── Bar Tabs ─────────────────────────────────────────────────────────
     case POS_ACTIONS.OPEN_TAB: {
-      const { tabId, name, server } = action;
+      const { tabId, name, server, preAuthRef, cardLast4, cardBrand } = action;
       return {
         ...state,
         tabStates: {
           ...state.tabStates,
-          [tabId]: { name, server, items: [], voidedItems: [], openedAt: Date.now() },
+          [tabId]: {
+            name, server, items: [], voidedItems: [], openedAt: Date.now(),
+            ...(preAuthRef && { preAuthRef, cardLast4, cardBrand }),
+          },
         },
       };
     }
