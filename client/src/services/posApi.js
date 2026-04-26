@@ -106,3 +106,10 @@ export const apiUpdateServiceConfig = (configs) =>
 
 export const apiSyncMenu = (categories) =>
   api.put('/api/menu/sync', { categories });
+
+// ── KDS ─────────────────────────────────────────────────────────────────────
+
+export const fetchKdsStations = () => api.get('/api/kds/stations');
+export const fetchKdsTickets = (stationKey) => api.get(`/api/kds/tickets/${stationKey}`);
+export const apiBumpItem = (itemId) => api.post('/api/kds/bump-item', { itemId });
+export const apiBumpTicket = (sessionId, stationKey) => api.post('/api/kds/bump-ticket', { sessionId, stationKey });

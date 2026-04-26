@@ -2763,6 +2763,251 @@ body {
 .menu-editor-add-btn.small { padding: 4px 10px; font-size: 0.75rem; }
 .menu-editor-add-btn:hover { border-color: var(--accent); }
 
+/* ============ KDS VIEW ============ */
+
+.kds-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.kds-offline {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-muted);
+  gap: 8px;
+}
+.kds-offline h2 { color: var(--text); margin: 0; }
+.kds-offline p { margin: 0; }
+
+/* ── Station tabs ── */
+
+.kds-station-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-raised);
+  overflow-x: auto;
+  flex-shrink: 0;
+}
+
+.kds-station-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+.kds-station-tab:hover {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+.kds-station-tab.active {
+  background: var(--bg-active);
+  color: var(--text);
+  border-color: var(--text-muted);
+}
+
+.kds-station-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.kds-tab-count {
+  background: var(--bg-hover);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 10px;
+  margin-left: 2px;
+}
+.kds-station-tab.active .kds-tab-count {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* ── Ticket grid ── */
+
+.kds-ticket-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+  padding: 16px 20px;
+  overflow-y: auto;
+  flex: 1;
+  align-content: start;
+}
+
+.kds-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  padding: 60px 0;
+}
+
+/* ── Ticket card ── */
+
+.kds-ticket {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-left: 4px solid var(--border);
+}
+.kds-ticket.kds-ticket-warning {
+  border-left-color: var(--warning);
+}
+.kds-ticket.kds-ticket-late {
+  border-left-color: var(--danger);
+  animation: kds-pulse 2s ease-in-out infinite;
+}
+
+@keyframes kds-pulse {
+  0%, 100% { background: var(--bg-raised); }
+  50% { background: #1f1210; }
+}
+
+.kds-ticket-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.kds-ticket-label {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--text);
+}
+
+.kds-ticket-time {
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+.kds-ticket-time.kds-ticket-warning { color: var(--warning); }
+.kds-ticket-time.kds-ticket-late { color: var(--danger); }
+
+/* ── Items ── */
+
+.kds-ticket-items {
+  flex: 1;
+}
+
+.kds-item {
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(51, 51, 51, 0.5);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.kds-item:hover {
+  background: var(--bg-hover);
+}
+.kds-item:last-child {
+  border-bottom: none;
+}
+
+.kds-item-main {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.kds-item-qty {
+  font-weight: 700;
+  color: var(--accent);
+  font-size: 0.9rem;
+}
+
+.kds-item-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text);
+  flex: 1;
+}
+
+.kds-item-seat {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  background: var(--bg);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.kds-item-station-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.kds-item-detail {
+  font-size: 0.8rem;
+  padding-left: 4px;
+  margin-top: 2px;
+  color: var(--text-muted);
+}
+
+.kds-cook-temp {
+  color: var(--warning);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.kds-mods span,
+.kds-addons span,
+.kds-notes span {
+  display: block;
+}
+
+.kds-allergies {
+  color: var(--danger);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+/* ── Bump button ── */
+
+.kds-bump-btn {
+  padding: 14px;
+  background: var(--success);
+  border: none;
+  color: #fff;
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: filter 0.1s;
+}
+.kds-bump-btn:hover {
+  filter: brightness(1.15);
+}
+.kds-bump-btn:active {
+  filter: brightness(0.85);
+}
+
 /* ============ TOAST ============ */
 .toast {
   position: fixed;
