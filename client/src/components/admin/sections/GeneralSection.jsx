@@ -143,6 +143,18 @@ export default function GeneralSection() {
       <div className="modal-actions" style={{ marginTop: 8 }}>
         <button className="confirm-btn" onClick={save} disabled={saving}>{saving ? 'Saving...' : 'Save'}</button>
       </div>
+
+      <h3>Kitchen Display System</h3>
+      <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: 8 }}>
+        Opens the KDS in a new tab. Use on a dedicated kitchen screen.
+      </p>
+      <button
+        className="confirm-btn"
+        onClick={() => window.open('/kds.html', '_blank')}
+        style={{ background: 'var(--accent)' }}
+      >
+        Launch KDS
+      </button>
     </div>
   );
 }

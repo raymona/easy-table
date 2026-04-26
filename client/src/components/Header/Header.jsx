@@ -1,10 +1,9 @@
 import React from 'react';
-import { usePOS, useUI, useAuth, POS_ACTIONS, getServerInfo, usePOSActions } from '../../context';
+import { usePOS, useUI, POS_ACTIONS, getServerInfo, usePOSActions } from '../../context';
 
 export default function Header() {
   const { state, dispatch } = usePOS();
   const actions = usePOSActions();
-  const { backendEnabled } = useAuth();
   const { daypart, currentServer, adminConfig } = state;
   const { view, setView, activeTable, setActiveTable, activeTab, setActiveTab, setShowServerScreen } = useUI();
 
@@ -27,12 +26,6 @@ export default function Header() {
             className={view === 'tabs' ? 'active' : ''}
             onClick={() => { setView('tabs'); setActiveTable(null); setActiveTab(null); }}
           >Bar Tabs</button>
-          {backendEnabled && (
-            <button
-              className={view === 'kds' ? 'active' : ''}
-              onClick={() => { setView('kds'); setActiveTable(null); setActiveTab(null); }}
-            >KDS</button>
-          )}
           <button
             className={`settings-btn${view === 'admin' ? ' active' : ''}`}
             onClick={() => setView('admin')}

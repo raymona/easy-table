@@ -12,7 +12,6 @@ import TabsView from './TabsView/TabsView';
 import OrderView from './OrderView/OrderView';
 import AdminPinModal from './admin/AdminPinModal';
 import AdminShell from './admin/AdminShell';
-import KDSView from './KDSView/KDSView';
 
 // Modals
 import SeatPickerModal from './modals/SeatPickerModal';
@@ -59,7 +58,6 @@ export default function POS() {
         {view === 'admin' && (
           adminUnlocked ? <AdminShell /> : <AdminPinModal />
         )}
-        {view === 'kds' && <KDSView />}
         {view === 'floor' && !isTableView && !isTabView && <FloorView />}
         {view === 'tabs' && !isTabView && <TabsView />}
         {(isTableView || isTabView) && <OrderView />}

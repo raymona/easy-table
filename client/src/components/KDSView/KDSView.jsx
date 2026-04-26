@@ -1,11 +1,17 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useUI, useAuth } from '../../context';
+import { useAuth } from '../../context';
 import { fetchKdsStations, fetchKdsTickets, apiBumpItem, apiBumpTicket } from '../../services/posApi';
 import KDSTicket from './KDSTicket';
 
-export default function KDSView() {
+export default function KDSView({ showToast: showToastProp } = {}) {
   const { backendEnabled } = useAuth();
-  const { showToast } = useUI();
+
+  // Self-contained toast if no external showToast provided (standalone mode)
+  const [internalToast, setInternalToast] = useState(null);
+  const showToast = showToastProp || ((message, type = 'error') => {
+    setInternalToast({ message, type });
+    setTimeout(() => setInternalToast(null), 3000);
+  });
 
   const [stations, setStations] = useState([]);
   const [activeStation, setActiveStation] = useState('all');
@@ -197,6 +203,12 @@ export default function KDSView() {
           ))
         )}
       </div>
+
+      {internalToast && (
+        <div className={`toast toast-${internalToast.type}`} onClick={() => setInternalToast(null)}>
+          {internalToast.message}
+        </div>
+      )}
     </div>
   );
 }

@@ -1,0 +1,7 @@
+{
+  "rewrites": [
+    { "source": "/kds", "destination": "/kds.html" },
+    { "source": "/kds.html", "destination": "/kds.html" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}

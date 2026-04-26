@@ -3008,6 +3008,31 @@ body {
   filter: brightness(0.85);
 }
 
+/* ── KDS Standalone (separate tab) ── */
+
+.kds-standalone {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.kds-standalone-header {
+  display: flex;
+  align-items: center;
+  padding: 10px 20px;
+  background: var(--bg-raised);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.kds-standalone-title {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--text);
+}
+
 /* ============ TOAST ============ */
 .toast {
   position: fixed;
