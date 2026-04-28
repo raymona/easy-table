@@ -20,6 +20,11 @@ export default function GeneralSection() {
   const [localTaxRate, setLocalTaxRate] = useState(String(Math.round(adminConfig.taxRate * 100)));
   const [localTipPresets, setLocalTipPresets] = useState([...adminConfig.tipPresets]);
   const [localAutoSignOut, setLocalAutoSignOut] = useState(adminConfig.autoSignOutMinutes ?? 2);
+  const [showPinChange, setShowPinChange] = useState(false);
+  const [currentPin, setCurrentPin] = useState('');
+  const [newPin, setNewPin] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
+  const [pinError, setPinError] = useState('');
   const [localServiceConfig, setLocalServiceConfig] = useState(
     JSON.parse(JSON.stringify(serviceConfig))
   );
@@ -143,6 +148,57 @@ export default function GeneralSection() {
       <div className="modal-actions" style={{ marginTop: 8 }}>
         <button className="confirm-btn" onClick={save} disabled={saving}>{saving ? 'Saving...' : 'Save'}</button>
       </div>
+
+      <h3>Admin PIN</h3>
+      {!showPinChange ? (
+        <button className="confirm-btn" onClick={() => setShowPinChange(true)} style={{ background: 'var(--bg-raised)', color: 'var(--text)', border: '1px solid var(--border)' }}>
+          Change PIN
+        </button>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 250 }}>
+          <input
+            type="password"
+            inputMode="numeric"
+            maxLength={4}
+            placeholder="Current PIN"
+            value={currentPin}
+            onChange={e => { setCurrentPin(e.target.value.replace(/\D/g, '').slice(0, 4)); setPinError(''); }}
+          />
+          <input
+            type="password"
+            inputMode="numeric"
+            maxLength={4}
+            placeholder="New PIN (4 digits)"
+            value={newPin}
+            onChange={e => { setNewPin(e.target.value.replace(/\D/g, '').slice(0, 4)); setPinError(''); }}
+          />
+          <input
+            type="password"
+            inputMode="numeric"
+            maxLength={4}
+            placeholder="Confirm New PIN"
+            value={confirmPin}
+            onChange={e => { setConfirmPin(e.target.value.replace(/\D/g, '').slice(0, 4)); setPinError(''); }}
+          />
+          {pinError && <div style={{ color: 'var(--danger)', fontSize: '0.85rem' }}>{pinError}</div>}
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="cancel-btn" onClick={() => { setShowPinChange(false); setCurrentPin(''); setNewPin(''); setConfirmPin(''); setPinError(''); }}>Cancel</button>
+            <button className="confirm-btn" onClick={async () => {
+              if (currentPin !== (adminConfig.pin || '1234')) { setPinError('Current PIN is incorrect'); return; }
+              if (newPin.length !== 4) { setPinError('New PIN must be 4 digits'); return; }
+              if (newPin !== confirmPin) { setPinError('PINs do not match'); return; }
+              try {
+                await actions.updateAdminConfig({ pin: newPin });
+                showToast('PIN updated', 'success');
+                setShowPinChange(false);
+                setCurrentPin(''); setNewPin(''); setConfirmPin(''); setPinError('');
+              } catch (err) {
+                setPinError(err.message || 'Failed to update PIN');
+              }
+            }}>Save PIN</button>
+          </div>
+        </div>
+      )}
 
       <h3>Kitchen Display System</h3>
       <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: 8 }}>

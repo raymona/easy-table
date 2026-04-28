@@ -276,7 +276,7 @@ export function usePOSActions() {
   const closeTableBill = useCallback(async (tableId, closedBill) => {
     if (backendEnabled) {
       const sessionId = getSessionId(tableId);
-      await posApi.apiCloseBill({
+      const { bill } = await posApi.apiCloseBill({
         tableSessionId: sessionId,
         subtotal: closedBill.subtotal,
         discountAmount: closedBill.discountAmount || 0,
@@ -286,6 +286,7 @@ export function usePOSActions() {
         tipTotal: closedBill.tip || 0,
         amountPaid: closedBill.amountPaid,
       });
+      closedBill.backendBillId = bill.id;
     }
     dispatch({ type: POS_ACTIONS.CLOSE_TABLE_BILL, tableId, closedBill });
   }, [backendEnabled, dispatch, getSessionId]);
@@ -293,7 +294,7 @@ export function usePOSActions() {
   const closeTabBill = useCallback(async (tabId, closedBill) => {
     if (backendEnabled) {
       const tabSessionId = getTabSessionId(tabId);
-      await posApi.apiCloseBill({
+      const { bill } = await posApi.apiCloseBill({
         tabSessionId,
         subtotal: closedBill.subtotal,
         discountAmount: closedBill.discountAmount || 0,
@@ -303,6 +304,7 @@ export function usePOSActions() {
         tipTotal: closedBill.tip || 0,
         amountPaid: closedBill.amountPaid,
       });
+      closedBill.backendBillId = bill.id;
     }
     dispatch({ type: POS_ACTIONS.CLOSE_TAB_BILL, tabId, closedBill });
   }, [backendEnabled, dispatch, getTabSessionId]);
@@ -326,8 +328,13 @@ export function usePOSActions() {
   }, [backendEnabled, dispatch, getSessionId]);
 
   const transferTabToTable = useCallback(async (tabId, tableId, server) => {
+    if (backendEnabled) {
+      const tabSessionId = getTabSessionId(tabId);
+      const { session } = await posApi.apiConvertTabToTable(tabSessionId, tableId, 1);
+      dispatch({ type: POS_ACTIONS.SET_SESSION_ID, tableNumber: tableId, sessionId: session.id });
+    }
     dispatch({ type: POS_ACTIONS.TRANSFER_TAB_TO_TABLE, tabId, tableId, server });
-  }, [dispatch]);
+  }, [backendEnabled, dispatch, getTabSessionId]);
 
   const transferItem = useCallback(async (fromTableId, fromSeat, toTableId, toSeat, item) => {
     if (backendEnabled) {
@@ -348,8 +355,16 @@ export function usePOSActions() {
   }, [backendEnabled, dispatch]);
 
   const updatePayment = useCallback(async (billId, newMethod, newAmount) => {
+    if (backendEnabled) {
+      const bill = stateRef.current.closedBills.find(b => b.id === billId);
+      const backendBillId = bill?.backendBillId || bill?.id;
+      const paymentId = bill?.payments?.[0]?.id;
+      if (backendBillId && paymentId) {
+        await posApi.apiUpdateBillPayment(backendBillId, paymentId, newMethod, parseFloat(newAmount) || bill.amountPaid);
+      }
+    }
     dispatch({ type: POS_ACTIONS.UPDATE_PAYMENT, billId, newMethod, newAmount });
-  }, [dispatch]);
+  }, [backendEnabled, dispatch]);
 
   // ── Admin ────────────────────────────────────────────────────────────────
 
@@ -371,6 +386,11 @@ export function usePOSActions() {
       }
       // Pass remaining venue-level fields to config endpoint
       const { servers, discountPresets, voidReasons, ...venueFields } = updates;
+      // Map local key 'pin' to backend key 'adminPin'
+      if (venueFields.pin !== undefined) {
+        venueFields.adminPin = venueFields.pin;
+        delete venueFields.pin;
+      }
       if (Object.keys(venueFields).length > 0) {
         await posApi.apiUpdateConfig(venueFields);
       }

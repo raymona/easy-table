@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { usePOS, useUI } from '../../context';
 import { usePOSActions } from '../../hooks/usePOSActions';
 
@@ -6,6 +6,7 @@ export default function VoidModal() {
   const { state } = usePOS();
   const voidReasons = state.adminConfig?.voidReasons || [];
   const actions = usePOSActions();
+  const [otherText, setOtherText] = useState('');
   const {
     showVoidModal, setShowVoidModal,
     voidReason, setVoidReason,
@@ -16,14 +17,18 @@ export default function VoidModal() {
 
   if (!showVoidModal || !selectedItem) return null;
 
+  const reason = voidReason === 'Other' ? otherText.trim() || '' : voidReason;
+  const canVoid = voidReason && (voidReason !== 'Other' || otherText.trim());
+
   const voidItem = async () => {
-    if (!voidReason) return;
+    if (!canVoid) return;
     const { item, seatNum } = selectedItem;
-    await actions.voidItem(activeTable, activeTab, seatNum, item.id, voidReason);
+    await actions.voidItem(activeTable, activeTab, seatNum, item.id, reason);
     setShowItemActions(false);
     setSelectedItem(null);
     setShowVoidModal(false);
     setVoidReason('');
+    setOtherText('');
   };
 
   return (
@@ -42,11 +47,18 @@ export default function VoidModal() {
           ))}
         </div>
         {voidReason === 'Other' && (
-          <input type="text" placeholder="Specify reason..." className="void-other-input" />
+          <input
+            type="text"
+            placeholder="Specify reason..."
+            className="void-other-input"
+            value={otherText}
+            onChange={e => setOtherText(e.target.value)}
+            autoFocus
+          />
         )}
         <div className="modal-actions">
-          <button className="cancel-btn" onClick={() => { setShowVoidModal(false); setVoidReason(''); }}>Cancel</button>
-          <button className="confirm-btn" onClick={voidItem} disabled={!voidReason}>Void Item</button>
+          <button className="cancel-btn" onClick={() => { setShowVoidModal(false); setVoidReason(''); setOtherText(''); }}>Cancel</button>
+          <button className="confirm-btn" onClick={voidItem} disabled={!canVoid}>Void Item</button>
         </div>
       </div>
     </div>

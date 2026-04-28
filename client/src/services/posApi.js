@@ -37,6 +37,9 @@ export const apiOpenTab = (name, preAuthRef, cardLast4) =>
 export const apiCloseTab = (tabSessionId) =>
   api.post(`/api/tabs/${tabSessionId}/close`);
 
+export const apiConvertTabToTable = (tabSessionId, tableNumber, seatCount) =>
+  api.post(`/api/tabs/${tabSessionId}/convert-to-table`, { tableNumber, seatCount });
+
 // ── Order Items ──────────────────────────────────────────────────────────────
 
 export const apiAddItem = (tableSessionId, tabSessionId, seatNumber, item) =>

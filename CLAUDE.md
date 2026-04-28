@@ -332,6 +332,14 @@ Static data in `src/data/menu.js`:
 
 ## Recently Completed
 
+### Bug Fixes + Backend Completeness (Phase 6, Apr 2026) — all done
+- **VoidModal "Other" text fix** — Added `otherText` state with `value`/`onChange` binding. Custom freetext reason now passes through to void action. Button disabled until text entered.
+- **transferTabToTable backend wiring** — New `POST /api/tabs/:id/convert-to-table` endpoint. Moves all order items from tab session to new table session, closes tab. `usePOSActions` calls API before dispatch when backend enabled.
+- **updatePayment backend wiring** — `usePOSActions.updatePayment` now calls existing `posApi.apiUpdateBillPayment`. `closeTableBill`/`closeTabBill` capture `backendBillId` from API response for backend sync.
+- **Gift card balance on closed bill** — Payment object now snapshots `giftCardCode` and `giftCardRemainingBalance` before redemption dispatch.
+- **Admin PIN change UI** — New section in Admin → General. Requires current PIN verification, new 4-digit PIN + confirmation. Maps local `pin` key to backend `adminPin` field.
+- **Legacy config.js removed** — `APP_MODE` was dead code (zero imports). File deleted. Venue mode controlled entirely by `adminConfig.mode`.
+
 ### Demo Realism + KDS (Phase 5, Apr 2026) — all done
 - **KDS UI** — `KDSView.jsx` + `KDSTicket.jsx`. Standalone page launched from Admin panel. Displays tickets per station, elapsed time with urgency coloring (warning 5min, late 10min). Bump items individually or full tickets. Uses backend `/api/kds` routes.
 - **PDF kitchen tickets** — `printService.js` generates 80mm thermal-style PDFs via jsPDF. Auto-opens in new browser tab when orders fire. Items grouped by course with qty, seat, cookTemp, mods, addOns, allergies (`!! ALLERGY !!`), notes. Triggered from `usePOSActions` on `sendOrder` and `fireCourse` using `stateRef` pattern (captures pre-dispatch state via `useRef`).
@@ -381,13 +389,7 @@ Static data in `src/data/menu.js`:
 - **State robustness** — Provider initializer now does `{ ...initialState, ...stored, currentServer: null }` so new state keys always have defaults even against older saves (prevents blank server list on schema additions).
 
 ## Known Limitations / In-Progress Items
-- **Gift card balance not on closed bill**: When a gift card is partially used, the remaining balance is correct in state but not printed on the closed bill receipt row
 - **Room charge PMS integration**: Room charge stores room number/guest name locally but does not POST to a PMS (OPERA, Mews, etc.) — see PaymentService abstraction hook point above
-- **transferTabToTable**: Not yet wired to backend API (dispatches locally only)
-- **updatePayment**: Not yet wired to backend API (posApi has `apiUpdateBillPayment` but usePOSActions doesn't call it)
-- **VoidModal "Other" text not captured**: When user selects "Other" void reason, the freetext input has no `value`/`onChange` binding — the reason is saved as the string `"Other"` not the custom text
-- **Admin PIN change**: No UI to change the PIN from within the admin panel yet
-- **config.js APP_MODE**: Still present but superseded by `adminConfig.mode`. Can be removed in a future cleanup.
 - **Payment terminal is simulated**: `paymentSimulator.js` is a demo/test tool — swap for Stripe Terminal or Moneris SDK for production
 
 ## Deployment Mode

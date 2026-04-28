@@ -173,6 +173,12 @@ export default function PaymentModal() {
   const executePayment = async (cardResult) => {
     const amount = parseFloat(paymentAmount) || 0;
     if (amount <= 0) return;
+
+    // Snapshot gift card info before redemption changes the balance
+    const isGift = selectedPaymentMethod === 'gift' && giftCardCode;
+    const giftCode = isGift ? giftCardCode.trim().toUpperCase() : null;
+    const giftBalanceBefore = isGift ? (giftCards[giftCode] || 0) : null;
+
     const payment = {
       seat: selectedPaySeat, method: selectedPaymentMethod, amount, timestamp: Date.now(),
       ...(selectedPaymentMethod === 'room' && { roomNumber, guestName }),
@@ -180,10 +186,14 @@ export default function PaymentModal() {
         processorRef: cardResult.authCode,
         cardLast4: cardResult.cardLast4,
       }),
+      ...(isGift && {
+        giftCardCode: giftCode,
+        giftCardRemainingBalance: Math.max(0, giftBalanceBefore - amount),
+      }),
     };
 
-    if (selectedPaymentMethod === 'gift' && giftCardCode) {
-      actions.redeemGiftCard(giftCardCode.trim().toUpperCase(), amount);
+    if (isGift) {
+      actions.redeemGiftCard(giftCode, amount);
     }
 
     if (isTableView) {
